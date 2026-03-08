@@ -677,10 +677,19 @@ function saveAllResults() {
 
     // JSONデータ（Webアプリ用）はA1, A2に可視化して配置（ご要望対応）
     sheet.getRange('A1').setValue('【システム用データ】以下の行のデータはWebアプリが読み込むものです').setBackground('#fef08a').setFontWeight('bold');
-    sheet.getRange('A2').setValue(JSON.stringify(webAppData)).setFontColor('#6b7280'); // 少し文字色を薄くする
 
-    // JSONデータはAA1にも引き続き念のため退避処理（元のgetWebAppDataが動作するように）
-    sheet.getRange('AA1').setValue(JSON.stringify(webAppData));
+    const jsonStr = JSON.stringify(webAppData);
+    // スクリプトプロパティに「完全なデータ」を保存
+    props.setProperty('webAppFinalData', jsonStr);
+
+    if (jsonStr.length < 50000) {
+      sheet.getRange('A2').setValue(jsonStr).setFontColor('#6b7280');
+      sheet.getRange('AA1').setValue(jsonStr);
+    } else {
+      const msg = `【警告】データが50,000文字（${jsonStr.length}文字）を超えたため、ここへの書き込みを制限しました。Webアプリ側は正常に表示されます。`;
+      sheet.getRange('A2').setValue(msg).setFontColor('#DC2626');
+      sheet.getRange('AA1').setValue(msg);
+    }
 
     // 結果一覧を表形式で書き出す（JSONの下、4行目から開始）
     let currentRow = 4;
@@ -908,30 +917,32 @@ function getWebAppData() {
     // Webアプリ表示時にまず最新のシート内容から同期を試みる
     syncResultsFromSheet();
 
+    const props = PropertiesService.getScriptProperties();
+
+    // 1. まずスクリプトプロパティ（完全なデータ）を確認
+    const finalDataStr = props.getProperty('webAppFinalData');
+    if (finalDataStr && !finalDataStr.startsWith('【警告】')) {
+      return JSON.parse(finalDataStr);
+    }
+
+    // 2. プロパティにない場合、または警告のみの場合はシートからフォールバック
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_RESULTS);
     if (!sheet) {
-      return {
-        eventName: 'はしご酒',
-        parts: { part1: [], part2: [], part3: [] },
-        partInfo: {},
-        tags: {},
-        error: '結果シートが見つかりません'
-      };
+      return { eventName: 'はしご酒', parts: { part1: [], part2: [], part3: [] }, error: '結果シートが見つかりません' };
     }
 
-    // A2にデータが配置されているため、A2を取得
     const dataJson = sheet.getRange('A2').getValue();
-    if (!dataJson) {
-      return {
-        eventName: 'はしご酒',
-        parts: { part1: [], part2: [], part3: [] },
-        partInfo: {},
-        tags: {},
-        error: 'データがまだ生成されていません。メニューから「全工程を実行」を選択してください。'
-      };
+    if (dataJson && !dataJson.startsWith('【警告】')) {
+      return JSON.parse(dataJson);
     }
 
-    return JSON.parse(dataJson);
+    // 3. それでもデータが正しく取得できない場合の最終フォールバック
+    // ここで iconsData や profileUrlsData を使って最小限のレスポンスを組み立てることも可能
+    return {
+      eventName: 'はしご酒',
+      parts: { part1: [], part2: [], part3: [], part4: [] },
+      error: 'データが巨大すぎるか、まだ生成されていません。スプレッドシートのメニューから「グルーピング実行」を再度お試しください。'
+    };
 
   } catch (e) {
     Logger.log('Error in getWebAppData: ' + e.toString());
