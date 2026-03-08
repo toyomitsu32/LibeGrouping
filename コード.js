@@ -23,6 +23,8 @@ function onOpen() {
     .addItem('④ 第3部のカード生成', 'runCardGenerationPart3')
     .addItem('⑤ 子連れチームのカード生成', 'runCardGenerationPart4')
     .addSeparator()
+    .addItem('🔄 手動調整をWebアプリに反映', 'syncResultsFromSheet')
+    .addSeparator()
     .addItem('🌐 WebアプリURLを表示', 'showWebAppUrl')
     .addItem('⚙️ 設定シートを開く', 'openSettingsSheet')
     .addToUi();
@@ -864,6 +866,9 @@ function runCardGeneration(targetPart, partLabel) {
       throw new Error('Gemini APIキーが設定されていません');
     }
 
+    // スプレッドシート側の手動調整を反映させるために同期を実行
+    syncResultsFromSheet();
+
     const groupingResultStr = props.getProperty('groupingResult');
     if (!groupingResultStr) {
       throw new Error('グルーピング結果が見つかりません。先にグルーピングを実行してください');
@@ -1005,6 +1010,9 @@ function saveAllResults() {
   try {
     const settings = getSettings();
     const props = PropertiesService.getScriptProperties();
+
+    // 保存前にスプレッドシート側の手動調整内容を読み取って同期する
+    syncResultsFromSheet();
 
     const groupingResultStr = props.getProperty('cardResult') || props.getProperty('groupingResult') || '{}';
     const groupingResult = JSON.parse(groupingResultStr);
@@ -1182,6 +1190,131 @@ function saveAllResults() {
 // ===== WEB APP =====
 
 /**
+ * スプレッドシートの「結果」シートから現在のグルーピング状況を読み取り、
+ * スクリプトプロパティ（JSONデータ）を更新する。
+ * これにより、手動でのメンバー入れ替えをWebアプリに反映させる。
+ */
+function syncResultsFromSheet() {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_RESULTS);
+    if (!sheet) return;
+
+    const data = sheet.getDataRange().getValues();
+    const props = PropertiesService.getScriptProperties();
+
+    // 現在のカード生成結果があれば取得（AI生成済みのサマリーを保持するため）
+    const groupingResultStr = props.getProperty('cardResult') || props.getProperty('groupingResult') || '{}';
+    const groupingResult = JSON.parse(groupingResultStr);
+
+    // 各部のデータをクリアして再構築
+    const parts = {
+      '【第1部】': 'part1',
+      '【第2部】': 'part2',
+      '【第3部】': 'part3',
+      '【子連れ】': 'part4'
+    };
+
+    let currentPartKey = null;
+    const newPartsData = { part1: [], part2: [], part3: [], part4: [] };
+
+    // シートを走査してチーム名とメンバーを抽出
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const firstCell = String(row[0]).trim();
+
+      // 各部のセクション開始を検知
+      for (const [label, key] of Object.entries(parts)) {
+        if (firstCell.startsWith(label)) {
+          currentPartKey = key;
+          i++; // ヘッダー行（チーム名、人数...）をスキップ
+          break;
+        }
+      }
+
+      if (currentPartKey && firstCell && !Object.keys(parts).some(l => firstCell.startsWith(l)) && firstCell !== 'チーム名' && firstCell !== '総合判定' && !firstCell.startsWith('🎊')) {
+        const teamName = firstCell;
+        const members = [];
+        // C列以降(index 2〜)にメンバー名が入っている
+        for (let c = 2; c < row.length; c++) {
+          const mName = String(row[c]).trim();
+          if (mName) members.push(mName);
+        }
+
+        if (members.length > 0) {
+          // 既存のAI生成結果（summary/cards）があれば引き継ぐ
+          const existingTeam = (groupingResult[currentPartKey] || []).find(t => t.team_name === teamName);
+
+          newPartsData[currentPartKey].push({
+            team_name: teamName,
+            members: members,
+            summary: existingTeam ? existingTeam.summary : '',
+            cards: existingTeam ? existingTeam.cards : []
+          });
+        }
+      }
+    }
+
+    // 両方のプロパティを更新
+    const updatedResult = {
+      timestamp: new Date().toISOString(),
+      ...newPartsData
+    };
+
+    props.setProperty('groupingResult', JSON.stringify(updatedResult));
+
+    // すでにカード生成済みのデータがある場合は、その構造も最新のメンバーに更新
+    if (props.getProperty('cardResult')) {
+      props.setProperty('cardResult', JSON.stringify(updatedResult));
+    }
+
+    // 重要：スクリプトプロパティだけでなく、シート側のJSON（A2セル）も更新する
+    saveAllResultsInternal(updatedResult);
+
+    Logger.log('Synced results from sheet and updated JSON successfully');
+    showToast('手動調整内容をWebアプリに反映しました。', '同期完了');
+  } catch (e) {
+    Logger.log('Error in syncResultsFromSheet: ' + e.toString());
+    throw e;
+  }
+}
+
+/**
+ * シートへの再書き出しを行わずに、Webアプリ用JSONデータ（A2セル等）のみを更新する内部関数
+ */
+function saveAllResultsInternal(updatedResult) {
+  const settings = getSettings();
+  const props = PropertiesService.getScriptProperties();
+  const iconsData = JSON.parse(props.getProperty('iconsData') || '{}');
+  const profileUrlsData = JSON.parse(props.getProperty('profileUrlsData') || '{}');
+
+  const webAppData = {
+    eventName: settings.eventName || 'はしご酒',
+    parts: {
+      part1: updatedResult.part1 || [],
+      part2: updatedResult.part2 || [],
+      part3: updatedResult.part3 || [],
+      part4: updatedResult.part4 || []
+    },
+    partInfo: {
+      part1: { label: '第1部', time: settings.part1Time || '16:50', theme: (settings.part1Theme || '').replace(/\s?チーム$/, '') },
+      part2: { label: '第2部', time: settings.part2Time || '18:30', theme: (settings.part2Theme || '').replace(/\s?チーム$/, '') },
+      part3: { label: '第3部', time: settings.part3Time || '20:00', theme: (settings.part3Theme || '').replace(/\s?チーム$/, '') },
+      part4: { label: '子連れ', time: settings.part4Time || '16:50', theme: '子連れ' }
+    },
+    icons: iconsData,
+    profileUrls: profileUrlsData,
+    timestamp: new Date().toISOString()
+  };
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_RESULTS);
+  if (sheet) {
+    const jsonStr = JSON.stringify(webAppData);
+    sheet.getRange('A2').setValue(jsonStr);
+    sheet.getRange('AA1').setValue(jsonStr);
+  }
+}
+
+/**
  * Webアプリをサーブ
  */
 function doGet() {
@@ -1204,6 +1337,9 @@ function doGet() {
  */
 function getWebAppData() {
   try {
+    // Webアプリ表示時にまず最新のシート内容から同期を試みる
+    syncResultsFromSheet();
+
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_RESULTS);
     if (!sheet) {
       return {
