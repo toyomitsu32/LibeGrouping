@@ -686,9 +686,9 @@ function saveAllResults() {
       sheet.getRange('A2').setValue(jsonStr).setFontColor('#6b7280');
       sheet.getRange('AA1').setValue(jsonStr);
     } else {
-      const msg = `【警告】データが50,000文字（${jsonStr.length}文字）を超えたため、ここへの書き込みを制限しました。Webアプリ側は正常に表示されます。`;
-      sheet.getRange('A2').setValue(msg).setFontColor('#DC2626');
-      sheet.getRange('AA1').setValue(msg);
+      // 50,000文字を超える場合はセルを空にする（警告も表示しない）
+      sheet.getRange('A2').setValue("");
+      sheet.getRange('AA1').setValue("");
     }
 
     // 結果一覧を表形式で書き出す（JSONの下、4行目から開始）
@@ -886,8 +886,17 @@ function saveAllResultsInternal(updatedResult) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_RESULTS);
   if (sheet) {
     const jsonStr = JSON.stringify(webAppData);
-    sheet.getRange('A2').setValue(jsonStr);
-    sheet.getRange('AA1').setValue(jsonStr);
+    // スクリプトプロパティに「完全なデータ」を保存
+    props.setProperty('webAppFinalData', jsonStr);
+
+    if (jsonStr.length < 50000) {
+      sheet.getRange('A2').setValue(jsonStr);
+      sheet.getRange('AA1').setValue(jsonStr);
+    } else {
+      // 50,000文字を超える場合はセルを空にする
+      sheet.getRange('A2').setValue("");
+      sheet.getRange('AA1').setValue("");
+    }
   }
 }
 
@@ -921,7 +930,7 @@ function getWebAppData() {
 
     // 1. まずスクリプトプロパティ（完全なデータ）を確認
     const finalDataStr = props.getProperty('webAppFinalData');
-    if (finalDataStr && !finalDataStr.startsWith('【警告】')) {
+    if (finalDataStr && finalDataStr.length > 10) { // 警告文字列を避けるため単純な長さチェック
       return JSON.parse(finalDataStr);
     }
 
@@ -932,7 +941,7 @@ function getWebAppData() {
     }
 
     const dataJson = sheet.getRange('A2').getValue();
-    if (dataJson && !dataJson.startsWith('【警告】')) {
+    if (dataJson && String(dataJson).length > 10) {
       return JSON.parse(dataJson);
     }
 
