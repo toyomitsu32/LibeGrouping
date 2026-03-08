@@ -6,7 +6,6 @@
 
 // 定数定義
 const SHEET_PARTICIPANTS = '参加者';
-const SHEET_PAIRS = 'ペア指定';
 const SHEET_SETTINGS = '設定';
 const SHEET_TEAMS = 'チーム名';
 const SHEET_RESULTS = '結果';
@@ -128,7 +127,7 @@ function getParticipants() {
     Logger.log('子連れ列の検索結果: 列' + (oViceIdx + 1) + '（' + String.fromCharCode(65 + oViceIdx) + '列）');
   }
 
-  const maxCol = Math.max(16, oViceIdx + 1); // P列(16列目)まで読む
+  const maxCol = Math.max(15, oViceIdx + 1); // O列(15列目)まで読む
   const range = sheet.getRange(DATA_START_ROW, 1, lastRow - DATA_START_ROW + 1, maxCol);
   const data = range.getValues();
 
@@ -155,10 +154,10 @@ function getParticipants() {
     const part2 = isParticipating(part2Cell);
     const part3 = isParticipating(part3Cell);
     const part4 = isParticipating(part4Cell);
-    const account = String(row[12]).trim();
-    const profile = String(row[13]).trim();
-    const iconUrl = row[14] ? String(row[14]).trim() : ''; // O列（15列目）
-    const profileUrl = row[15] ? String(row[15]).trim() : ''; // P列（16列目）
+    const account = String(row[11]).trim(); // 旧M列->L列
+    const profile = String(row[12]).trim(); // 旧N列->M列
+    const iconUrl = row[13] ? String(row[13]).trim() : ''; // 旧O列->N列
+    const profileUrl = row[14] ? String(row[14]).trim() : ''; // 旧P列->O列
 
     // 名前が空の場合はスキップ
     if (!name) {
@@ -192,34 +191,6 @@ function getParticipants() {
 }
 
 /**
- * ペア指定を読み込む
- * @returns {Array<Array<string>>} [member1, member2]のペアの配列
- */
-function getPairConstraints() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_PAIRS);
-  if (!sheet) {
-    return [];
-  }
-
-  const data = sheet.getDataRange().getValues();
-  const rowGroups = [];
-
-  for (let i = 1; i < data.length; i++) {
-    const rowMembers = data[i]
-      .map(cell => String(cell).trim())
-      .filter(name => name.length > 0);
-
-    if (rowMembers.length >= 2) {
-      rowGroups.push(rowMembers);
-      Logger.log('  ペア指定 行' + (i + 1) + ': [' + rowMembers.join(', ') + ']');
-    }
-  }
-
-  Logger.log('Loaded ' + rowGroups.length + ' group constraints from ペア指定');
-  return rowGroups;
-}
-
-/**
  * チーム名を読み込む
  * @returns {Object} {第1部: [...], 第2部: [...], 第3部: [...]}の形式
  */
@@ -247,265 +218,15 @@ function getTeamNames() {
 // ===== GROUPING ALGORITHM =====
 
 /**
- * 行ごとのグループ制約を処理する（先の行を優先、同一メンバーは最初の行に所属）
- * @param {Array<Array<string>>} rowGroups - 行単位のグループ制約
- * @returns {Array<Array<string>>} 重複排除されたグループの配列
- */
-/**
- * ペアグループをマージする（メンバーが重複する場合は1つの大きなグループに統合）
- * @param {Array<Array<string>>} pairGroups - ペアグループの配列
- * @returns {Array<Array<string>>} 統合後のグループ配列
- */
-function mergePairConstraints(pairGroups) {
-  if (pairGroups.length === 0) return [];
-
-  const groups = pairGroups.map(g => new Set(g));
-  let merged;
-
-  do {
-    merged = false;
-    for (let i = 0; i < groups.length; i++) {
-      for (let j = i + 1; j < groups.length; j++) {
-        // 共通メンバーがいるかチェック
-        const hasCommon = [...groups[i]].some(m => groups[j].has(m));
-        if (hasCommon) {
-          // i番目のグループにj番目を統合し、j番目を削除
-          groups[j].forEach(m => groups[i].add(m));
-          groups.splice(j, 1);
-          merged = true;
-          break;
-        }
-      }
-      if (merged) break;
-    }
-  } while (merged);
-
-  const result = groups.map(s => [...s]);
-  Logger.log('Merged into ' + result.length + ' distinct groups');
-  return result;
-}
-
-/**
- * 名前を正規化する（空白・不可視文字の除去、Unicode正規化）
- * @param {string} name - 正規化する名前
- * @returns {string} 正規化後の名前
- */
-function normalizeName(name) {
-  return String(name)
-    .replace(/[\s\u00A0\u3000\u200B\uFEFF]+/g, '') // 全角スペース、NBSP、ゼロ幅スペース等を除去
-    .normalize('NFC') // Unicode正規化
-    .trim();
-}
-
-/**
- * ペア指定シートの名前を参加者名に名寄せする
- * 完全一致 → 正規化一致 → 部分一致 の優先順で解決
- * @param {Array<Array<string>>} pairGroups - ペアグループの配列
- * @param {Array<string>} participantNames - 参加者名の配列
- * @returns {Array<Array<string>>} 参加者名に解決されたペアグループの配列
- */
-function resolvePairNames(pairGroups, participantNames) {
-  // 正規化済みマップを作成
-  const normalizedMap = new Map();
-  for (const name of participantNames) {
-    normalizedMap.set(normalizeName(name), name);
-  }
-
-  const resolved = [];
-
-  for (const group of pairGroups) {
-    const resolvedGroup = [];
-    const unresolvedMembers = [];
-
-    for (const pairName of group) {
-      // 1. 完全一致
-      if (participantNames.includes(pairName)) {
-        resolvedGroup.push(pairName);
-        continue;
-      }
-
-      // 2. 正規化一致
-      const normalized = normalizeName(pairName);
-      if (normalizedMap.has(normalized)) {
-        const resolved = normalizedMap.get(normalized);
-        Logger.log('✅ 名寄せ成功（正規化一致）: "' + pairName + '" → "' + resolved + '"');
-        resolvedGroup.push(resolved);
-        continue;
-      }
-
-      // 3. 部分一致（ペア指定名が参加者名に含まれる、または参加者名がペア指定名に含まれる）
-      let found = false;
-      for (const participantName of participantNames) {
-        if (participantName.includes(pairName) || pairName.includes(participantName)) {
-          Logger.log('✅ 名寄せ成功（部分一致）: "' + pairName + '" → "' + participantName + '"');
-          resolvedGroup.push(participantName);
-          found = true;
-          break;
-        }
-        // 正規化後の部分一致も試す
-        const normPair = normalizeName(pairName);
-        const normParticipant = normalizeName(participantName);
-        if (normParticipant.includes(normPair) || normPair.includes(normParticipant)) {
-          Logger.log('✅ 名寄せ成功（正規化部分一致）: "' + pairName + '" → "' + participantName + '"');
-          resolvedGroup.push(participantName);
-          found = true;
-          break;
-        }
-      }
-      if (found) continue;
-
-      // 解決できなかった
-      unresolvedMembers.push(pairName);
-      Logger.log('⚠️ 名寄せ失敗: "' + pairName + '" は参加者リストに見つかりませんでした');
-    }
-
-    if (unresolvedMembers.length > 0) {
-      Logger.log('⚠️ ペアグループ [' + group.join(', ') + '] のうち [' + unresolvedMembers.join(', ') + '] が参加者と一致しません');
-    }
-
-    if (resolvedGroup.length >= 2) {
-      resolved.push(resolvedGroup);
-    } else {
-      Logger.log('⚠️ ペアグループ [' + group.join(', ') + '] は有効メンバーが2人未満のため無視されます');
-    }
-  }
-
-  Logger.log('名寄せ完了: ' + resolved.length + ' / ' + pairGroups.length + ' グループが有効');
-  resolved.forEach((g, i) => Logger.log('  解決済みグループ ' + (i + 1) + ': [' + g.join(', ') + ']'));
-  return resolved;
-}
-
-/**
- * ペア指定の検証を実行する
- * 「いずれか1つの部でOKなら総合OK」の仕様で判定
- * @param {Object} groupingResult - グルーピング結果 {part1: [...], part2: [...], ...}
- * @param {Array<Array<string>>} mergedPairs - マージ済みペアグループ
- * @param {Array<Object>} parts - 各部の定義 [{key, label, ...}, ...]
- * @param {Array<Object>} participants - 参加者リスト
- * @returns {Array<Object>} ペアごとの検証結果
- */
-/**
- * ペア指定の検証を実行する
- * 「いずれか1つの部でOKなら総合OK」の仕様で判定
- * @param {Object} groupingResult - グルーピング結果
- * @param {Array<Object>} pairTargets - 名寄せ済みの個別のペア要望リスト
- * @param {Array<Object>} parts - 各部の定義
- * @param {Array<Object>} participants - 参加者リスト
- * @returns {Array<Object>} ペア要望ごとの検証結果
- */
-function verifyPairConstraints(groupingResult, pairTargets, parts, participants) {
-  const results = [];
-
-  for (const target of pairTargets) {
-    const pairMembers = target.originalGroup.join(', ');
-    const resolvedGroup = target.resolvedGroup;
-    const partDetails = [];
-    let satisfiedPart = null;
-    let satisfiedTeam = null;
-
-    for (const part of parts) {
-      if (part.singleGroup) continue;
-
-      const partGroups = groupingResult[part.key] || [];
-      if (partGroups.length === 0) continue;
-
-      // 各メンバーの配置先を調べる
-      const memberTeamMap = {};
-      for (const member of resolvedGroup) {
-        for (const team of partGroups) {
-          if (team.members.includes(member)) {
-            memberTeamMap[member] = team.team_name;
-            break;
-          }
-        }
-      }
-
-      const teams = [...new Set(Object.values(memberTeamMap))];
-      const assignedCount = Object.keys(memberTeamMap).length;
-      const allSameTeam = teams.length === 1 && assignedCount === resolvedGroup.length;
-
-      if (allSameTeam) {
-        partDetails.push({ part: part.label, status: '✅', team: teams[0] });
-        if (!satisfiedPart) {
-          satisfiedPart = part.label;
-          satisfiedTeam = teams[0];
-        }
-      } else {
-        const detail = resolvedGroup.map(m => memberTeamMap[m] || '不参加/不在').join(',');
-        partDetails.push({ part: part.label, status: '❌', team: '分散(' + detail + ')' });
-      }
-    }
-
-    const overallOk = satisfiedPart !== null;
-    // 詳細な状況（部:ステータス(チーム詳細)）を構築
-    const partSummary = partDetails.map(d => {
-      let text = d.part + ':' + d.status;
-      if (d.status === '❌' && d.team.startsWith('分散')) {
-        text += '(' + d.team.replace('分散(', '') + ')';
-      } else if (d.status === '✅') {
-        text += '(' + d.team + ')';
-      }
-      return text;
-    }).join(' / ');
-
-    results.push({
-      pairMembers: pairMembers,
-      overallStatus: overallOk ? '✅ OK' : '❌ NG',
-      satisfiedPart: satisfiedPart || '—',
-      satisfiedTeam: satisfiedTeam || '—',
-      partSummary: partSummary
-    });
-  }
-
-  return results;
-}
-
-/**
  * メンバーをグループに分配する
  * @param {Array<string>} members - メンバー名の配列
- * @param {Array<Array<string>>} mergedPairs - マージされたペアグループ
  * @param {number} minSize - グループの最小人数
  * @param {number} maxSize - グループの最大人数
  * @returns {Array<Array<string>>} グループ化されたメンバーの配列
  */
-function distributeIntoGroups(members, mergedPairs, minSize, maxSize) {
-  // ペア制約の考慮（上限を超えない範囲で事前にグループ化）
-  let initialGroups = [];
-  const usedMembers = new Set();
-
-  const skippedPairs = [];
-  const memberSet = new Set(members);
-
-  for (const pairGroup of mergedPairs) {
-    // ペアメンバーが実際のmembersリストに存在するかチェック
-    const validMembers = pairGroup.filter(m => memberSet.has(m));
-    const invalidMembers = pairGroup.filter(m => !memberSet.has(m));
-
-    if (invalidMembers.length > 0) {
-      Logger.log('⚠️ ペアグループ [' + pairGroup.join(', ') + '] のうち [' + invalidMembers.join(', ') + '] はこのパートの参加者ではありません');
-    }
-
-    if (validMembers.length >= 2 && validMembers.length <= maxSize) {
-      initialGroups.push([...validMembers]);
-      validMembers.forEach(m => usedMembers.add(m));
-      Logger.log('✅ ペア制約を適用: [' + validMembers.join(', ') + ']');
-    } else if (validMembers.length > maxSize) {
-      // 最大人数(maxSize)を超えてしまう統合ペアは、人数制限遵守を優先してスキップする
-      const names = validMembers.join(', ');
-      Logger.log('❌ 人数制限遵守のためペア制約をスキップ（' + validMembers.length + '人 > 最大' + maxSize + '人）: ' + names);
-      skippedPairs.push(validMembers);
-    } else if (validMembers.length < 2) {
-      Logger.log('⚠️ ペアグループ [' + pairGroup.join(', ') + '] は有効メンバーが2人未満のため無視');
-    }
-  }
-
-  if (skippedPairs.length > 0) {
-    const msgs = skippedPairs.map(g => g.join(' & ') + '（' + g.length + '人）');
-    showToast('⚠️ 以下のペア指定はグループ上限(' + maxSize + '人)を超えるため反映できませんでした:\n' + msgs.join('\n'), '警告', 15);
-  }
-
-  // 残りのメンバーを取得してシャッフル
-  const remaining = members.filter(m => !usedMembers.has(m));
+function distributeIntoGroups(members, minSize, maxSize) {
+  // メンバーをシャッフル
+  const remaining = [...members];
   shuffleArray(remaining);
 
   // ペアで構成された初期グループに残りのメンバーを追加して均す
@@ -524,19 +245,6 @@ function distributeIntoGroups(members, mergedPairs, minSize, maxSize) {
 
   // グループの枠を準備
   const groups = Array.from({ length: numGroups }, () => []);
-
-  // まず初期グループ（ペア）を、作成した枠に配置していく
-  let groupIndex = 0;
-  for (const initGrp of initialGroups) {
-    if (groupIndex < numGroups) {
-      groups[groupIndex].push(...initGrp);
-      groupIndex++;
-    } else {
-      // もしペアの数が計算上のグループ数を超えていたら、人数の少ない枠に入れる
-      const minLenGroup = groups.reduce((a, b) => a.length < b.length ? a : b);
-      minLenGroup.push(...initGrp);
-    }
-  }
 
   // 残りのメンバーを、人数の少ないグループから順に1人ずつ配分していく（ラウンドロビン式）
   for (const member of remaining) {
@@ -557,7 +265,6 @@ function runGrouping() {
   try {
     const settings = getSettings();
     const participants = getParticipants();
-    const pairs = getPairConstraints();
     const teamNames = getTeamNames();
 
     const cleanTheme = (t) => (t || '').replace(/\s?チーム$/, '');
@@ -570,92 +277,6 @@ function runGrouping() {
 
     const allParticipantNames = participants.map(p => p.name);
     const maxSize = settings.maxGroupSize || 10;
-
-    // 各部ごとに、既に割り当てられた「マージされたペアグループ（Set）」を管理し、シミュレーションに利用する
-    const partAssignments = {
-      part1: [], // Array<Set<string>>
-      part2: [],
-      part3: []
-    };
-
-    // 各行（要望）をシートの上の行から順に処理（優先順位）
-    const pairTargets = pairs.map((group, rowIdx) => {
-      const resolved = resolvePairNames([group], allParticipantNames);
-      if (resolved.length === 0) return null;
-      const resolvedGroup = resolved[0];
-
-      // このペアのメンバー全員が参加している部をリストアップ
-      const availablePartKeys = parts.filter(p => {
-        if (p.singleGroup) return false;
-        return resolvedGroup.every(name => {
-          const participant = participants.find(partici => partici.name === name);
-          return participant && participant[p.key];
-        });
-      }).map(p => p.key);
-
-      if (availablePartKeys.length === 0) return null;
-
-      // 各利用可能な部について、このペアを追加した時の「マージ後の最大人数」を計算し、スコアリングする
-      const scores = availablePartKeys.map(partKey => {
-        const currentGroups = partAssignments[partKey];
-        // 既存のグループ（Set）のうち、今回のペアと「連鎖的に繋がる（共通メンバーを持つ）」ものだけを抽出して合算する
-        let connectedMembers = new Set(resolvedGroup);
-        let changed = true;
-        while (changed) {
-          changed = false;
-          for (const s of currentGroups) {
-            const hasCommon = [...s].some(m => connectedMembers.has(m));
-            if (hasCommon) {
-              const oldSize = connectedMembers.size;
-              s.forEach(m => connectedMembers.add(m));
-              if (connectedMembers.size > oldSize) {
-                changed = true;
-              }
-            }
-          }
-        }
-
-        return {
-          partKey: partKey,
-          projectedSize: connectedMembers.size,
-          isOver: connectedMembers.size > maxSize
-        };
-      });
-
-      // スコアでソート: 1. maxSizeを超えない 2. 超えない中での最小人数（分散優先） 3. ランダム
-      shuffleArray(scores);
-      scores.sort((a, b) => {
-        if (a.isOver !== b.isOver) return a.isOver ? 1 : -1;
-        return a.projectedSize - b.projectedSize;
-      });
-
-      const best = scores[0];
-      const targetPart = parts.find(p => p.key === best.partKey);
-
-      // 割り当てを確定させ、追跡用データを正確にマージ更新（連結成分を1つのSetにまとめる）
-      const currentGroups = partAssignments[best.partKey];
-      let newMergedSet = new Set(resolvedGroup);
-      let otherGroups = [];
-      for (const s of currentGroups) {
-        if ([...s].some(m => newMergedSet.has(m))) {
-          s.forEach(m => newMergedSet.add(m));
-        } else {
-          otherGroups.push(s);
-        }
-      }
-      otherGroups.push(newMergedSet);
-      partAssignments[best.partKey] = otherGroups;
-
-      const isReallyOver = best.isOver;
-      Logger.log('🎯 要望' + (rowIdx + 1) + ' 決定: [' + resolvedGroup.join(',') + '] -> ' + targetPart.label + (isReallyOver ? ' (⚠️人数制限超過注意: ' + best.projectedSize + ')' : ' (OK)'));
-
-      return {
-        originalGroup: group,
-        resolvedGroup: resolvedGroup,
-        targetPartKey: targetPart.key,
-        targetPartLabel: targetPart.label
-      };
-    }).filter(t => t !== null);
 
     const groupingResult = {
       timestamp: new Date().toISOString(),
@@ -675,19 +296,6 @@ function runGrouping() {
 
       showToast(part.label + ' のグルーピング中...', 'グルーピング');
 
-      // この部をターゲットにしているペア要望を抽出し、メンバーが重複する場合は統合する
-      const targetingPairs = pairTargets
-        .filter(t => t.targetPartKey === part.key)
-        .map(t => t.resolvedGroup);
-
-      const relevantPairs = mergePairConstraints(targetingPairs);
-
-      // デバッグ
-      Logger.log('--- ' + part.label + ' ペア適用状況 ---');
-      Logger.log('  この部をターゲットにする要望数: ' + targetingPairs.length);
-      Logger.log('  統合後のペア数: ' + relevantPairs.length);
-      relevantPairs.forEach((g, i) => Logger.log('  部内ペア ' + (i + 1) + ': [' + g.join(', ') + ']'));
-
       if (part.singleGroup) {
         // oViceなど、単独の1チームにする場合
         groupingResult[part.key] = [{
@@ -699,10 +307,8 @@ function runGrouping() {
         continue;
       }
 
-      // 共通グルーピング処理
       const groups = distributeIntoGroups(
         partMembers,
-        relevantPairs,
         settings.minGroupSize,
         settings.maxGroupSize
       );
@@ -745,23 +351,10 @@ function runGrouping() {
     // 古いカード生成結果をクリアし、新しいグルーピング結果で上書き
     props.deleteProperty('cardResult');
 
-    // ペア指定の検証を実行
-    showToast('ペア指定の検証中...', 'グルーピング');
-    const verifyResults = verifyPairConstraints(groupingResult, pairTargets, parts, participants);
-    props.setProperty('pairVerifyResults', JSON.stringify(verifyResults));
-    Logger.log('ペア検証結果: ' + JSON.stringify(verifyResults));
-
-    // 検証結果のサマリー（いずれか1つの部でOKならOK）
-    const okCount = verifyResults.filter(r => r.overallStatus === '✅ OK').length;
-    const ngCount = verifyResults.filter(r => r.overallStatus === '❌ NG').length;
-    if (ngCount > 0) {
-      showToast('⚠️ ペア指定 ' + ngCount + '件 がどの部でも満たされていません（' + okCount + '件 OK）', '警告', 10);
-    }
-
     // 結果シートおよび WebApp 用データに保存
     saveAllResults();
 
-    showToast('グルーピング完了！（ペア検証: ' + okCount + '/' + (okCount + ngCount) + ' OK）', '成功');
+    showToast('グルーピング完了！', '成功');
     Logger.log('Grouping result: ' + JSON.stringify(groupingResult));
 
   } catch (e) {
@@ -1124,54 +717,6 @@ function saveAllResults() {
       }
 
       currentRow += 2; // 部と部の間に空白行
-    }
-
-    // ===== ペア指定 検証結果セクション =====
-    const props2 = PropertiesService.getScriptProperties();
-    const verifyStr = props2.getProperty('pairVerifyResults');
-    if (verifyStr) {
-      const verifyResults = JSON.parse(verifyStr);
-      if (verifyResults.length > 0) {
-        currentRow += 1;
-
-        // セクションタイトル
-        sheet.getRange(currentRow, 1).setValue('📋 ペア指定 検証結果（いずれか1つの部でOKなら✅）').setFontWeight('bold').setFontSize(12);
-        currentRow++;
-
-        // サマリー
-        const okCount = verifyResults.filter(r => r.overallStatus === '✅ OK').length;
-        const ngCount = verifyResults.filter(r => r.overallStatus === '❌ NG').length;
-        const summaryText = 'ペア指定: ' + verifyResults.length + '件 ／ ✅ OK: ' + okCount + '件 ／ ❌ NG: ' + ngCount + '件';
-        sheet.getRange(currentRow, 1).setValue(summaryText).setFontColor(ngCount > 0 ? '#DC2626' : '#16A34A').setFontWeight('bold');
-        currentRow++;
-
-        // テーブルヘッダー
-        const verifyHeader = ['総合判定', 'OKの部', 'OKのチーム', 'ペア指定メンバー', '各部の状況'];
-        const verifyCols = verifyHeader.length;
-        sheet.getRange(currentRow, 1, 1, verifyCols).setValues([verifyHeader]).setFontWeight('bold').setBackground('#e5e7eb');
-        currentRow++;
-
-        // データ行
-        const verifyData = verifyResults.map(r => [
-          r.overallStatus,
-          r.satisfiedPart,
-          r.satisfiedTeam,
-          r.pairMembers,
-          r.partSummary
-        ]);
-        sheet.getRange(currentRow, 1, verifyData.length, verifyCols).setValues(verifyData);
-
-        // 条件付き書式：OK行は緑背景、NG行は赤背景
-        for (let vi = 0; vi < verifyData.length; vi++) {
-          const rowNum = currentRow + vi;
-          const bgColor = verifyResults[vi].overallStatus === '✅ OK' ? '#DCFCE7' : '#FEE2E2';
-          sheet.getRange(rowNum, 1, 1, verifyCols).setBackground(bgColor);
-        }
-
-        // 罫線
-        sheet.getRange(currentRow - 1, 1, verifyData.length + 1, verifyCols).setBorder(true, true, true, true, true, true);
-        currentRow += verifyData.length + 1;
-      }
     }
 
     // 列幅の自動調整
