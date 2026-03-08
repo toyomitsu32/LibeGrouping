@@ -20,7 +20,7 @@ function onOpen() {
     .addItem('② 第1部のカード生成', 'runCardGenerationPart1')
     .addItem('③ 第2部のカード生成', 'runCardGenerationPart2')
     .addItem('④ 第3部のカード生成', 'runCardGenerationPart3')
-    .addItem('⑤ 子連れチームのカード生成', 'runCardGenerationPart4')
+    .addItem('⑤ 例外チームのカード生成', 'runCardGenerationPart4')
     .addSeparator()
     .addItem('🔄 手動調整をWebアプリに反映', 'syncResultsFromSheet')
     .addSeparator()
@@ -49,7 +49,7 @@ function getSettings() {
     throw new Error('設定シート（設定）が見つかりません');
   }
 
-  const data = sheet.getRange('A1:B11').getValues();
+  const data = sheet.getRange('A1:B12').getValues();
   const settings = {};
 
   const mapping = {
@@ -57,13 +57,14 @@ function getSettings() {
     2: 'part1Theme',
     3: 'part2Theme',
     4: 'part3Theme',
-    5: 'maxGroupSize',
-    6: 'minGroupSize',
-    7: 'eventName',
-    8: 'part1Time',
-    9: 'part2Time',
-    10: 'part3Time',
-    11: 'part4Time'
+    5: 'exceptionCategoryName',
+    6: 'maxGroupSize',
+    7: 'minGroupSize',
+    8: 'eventName',
+    9: 'part1Time',
+    10: 'part2Time',
+    11: 'part3Time',
+    12: 'part4Time'
   };
 
   for (const [row, key] of Object.entries(mapping)) {
@@ -85,6 +86,7 @@ function getSettings() {
   // デフォルト値の設定
   settings.maxGroupSize = parseInt(settings.maxGroupSize) || 4;
   settings.minGroupSize = parseInt(settings.minGroupSize) || 3;
+  settings.exceptionCategoryName = settings.exceptionCategoryName || '子連れ';
 
   Logger.log('Settings loaded: ' + JSON.stringify(settings));
   return settings;
@@ -105,7 +107,11 @@ function getParticipants() {
     return [];
   }
 
-  // 子連れチーム列を動的に探すためのヘッダー検索（行1〜行3を検索）
+  // 設定から例外カテゴリー名を取得
+  const settings = getSettings();
+  const targetLabel = (settings.exceptionCategoryName || '子連れ').toLowerCase();
+
+  // 例外チーム列を動的に探すためのヘッダー検索（行1〜行3を検索）
   const headersRow1 = sheet.getRange(1, 1, 1, 30).getValues()[0];
   const headersRow2 = sheet.getRange(2, 1, 1, 30).getValues()[0];
   let oViceIdx = -1;
@@ -113,18 +119,28 @@ function getParticipants() {
   for (let c = 6; c < 30; c++) {
     const h1 = String(headersRow1[c]).toLowerCase();
     const h2 = String(headersRow2[c]).toLowerCase();
-    if (h1.includes('ovice') || h1.includes('子連れ') || h1.includes('参加') ||
-      h2.includes('ovice') || h2.includes('子連れ') || h2.includes('参加')) {
+    if (h1.includes('ovice') || h1.includes(targetLabel) || h1.includes('参加') ||
+      h2.includes('ovice') || h2.includes(targetLabel) || h2.includes('参加')) {
       oViceIdx = c;
       break;
     }
   }
-  // 見つからなかった場合、H列（index 7）をフォールバックとして使用
+  // 見つけられなかった場合、かつデフォルトが「子連れ」の場合は「子連れ」という単語でもう一度試す
+  if (oViceIdx === -1 && targetLabel !== '子連れ') {
+    for (let c = 6; c < 30; c++) {
+      if (String(headersRow1[c]).includes('子連れ') || String(headersRow2[c]).includes('子連れ')) {
+        oViceIdx = c;
+        break;
+      }
+    }
+  }
+
+  // それでも見つからなかった場合、H列（index 7）をフォールバックとして使用
   if (oViceIdx === -1) {
     oViceIdx = 7; // H列
-    Logger.log('子連れ列: 自動検出できなかったため、H列（8列目）をフォールバックとして使用します');
+    Logger.log('列の自動検出ができなかったため、H列（8列目）をフォールバックとして使用します');
   } else {
-    Logger.log('子連れ列の検索結果: 列' + (oViceIdx + 1) + '（' + String.fromCharCode(65 + oViceIdx) + '列）');
+    Logger.log('例外カテゴリー列の検索結果: 列' + (oViceIdx + 1) + '（' + String.fromCharCode(65 + oViceIdx) + '列）');
   }
 
   const maxCol = Math.max(15, oViceIdx + 1); // O列(15列目)まで読む
@@ -268,11 +284,12 @@ function runGrouping() {
     const teamNames = getTeamNames();
 
     const cleanTheme = (t) => (t || '').replace(/\s?チーム$/, '');
+    const exceptionLabel = settings.exceptionCategoryName || '子連れ';
     const parts = [
       { key: 'part1', label: '第1部', theme: cleanTheme(settings.part1Theme), singleGroup: false },
       { key: 'part2', label: '第2部', theme: cleanTheme(settings.part2Theme), singleGroup: false },
       { key: 'part3', label: '第3部', theme: cleanTheme(settings.part3Theme), singleGroup: false },
-      { key: 'part4', label: '子連れ', theme: '子連れ', singleGroup: true }
+      { key: 'part4', label: exceptionLabel, theme: exceptionLabel, singleGroup: true }
     ];
 
     const allParticipantNames = participants.map(p => p.name);
@@ -640,9 +657,9 @@ function saveAllResults() {
           theme: (settings.part3Theme || '').replace(/\s?チーム$/, '')
         },
         part4: {
-          label: '子連れ',
+          label: settings.exceptionCategoryName || '子連れ',
           time: settings.part4Time || '16:50',
-          theme: '子連れ'
+          theme: settings.exceptionCategoryName || '子連れ'
         }
       },
       icons: iconsData,
@@ -752,11 +769,12 @@ function syncResultsFromSheet() {
     const groupingResult = JSON.parse(groupingResultStr);
 
     // 各部のデータをクリアして再構築
+    const exceptionLabel = settings.exceptionCategoryName || '子連れ';
     const parts = {
       '【第1部】': 'part1',
       '【第2部】': 'part2',
       '【第3部】': 'part3',
-      '【子連れ】': 'part4'
+      [`【${exceptionLabel}】`]: 'part4'
     };
 
     let currentPartKey = null;
@@ -844,7 +862,11 @@ function saveAllResultsInternal(updatedResult) {
       part1: { label: '第1部', time: settings.part1Time || '16:50', theme: (settings.part1Theme || '').replace(/\s?チーム$/, '') },
       part2: { label: '第2部', time: settings.part2Time || '18:30', theme: (settings.part2Theme || '').replace(/\s?チーム$/, '') },
       part3: { label: '第3部', time: settings.part3Time || '20:00', theme: (settings.part3Theme || '').replace(/\s?チーム$/, '') },
-      part4: { label: '子連れ', time: settings.part4Time || '16:50', theme: '子連れ' }
+      part4: {
+        label: settings.exceptionCategoryName || '子連れ',
+        time: settings.part4Time || '16:50',
+        theme: settings.exceptionCategoryName || '子連れ'
+      }
     },
     icons: iconsData,
     profileUrls: profileUrlsData,
