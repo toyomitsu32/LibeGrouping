@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>はしご酒 グルーピング結果</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --libe-orange: #FF6B00;
+      --libe-orange-lt: #FF8C38;
+      --libe-orange-pale: #FFF3E8;
+      --libe-yellow: #FFB830;
+
+      --p1-color: #FF6B00;
+      --p1-light: #FFF3E8;
+      --p1-mid: #FF8C38;
+      --p2-color: #0EA5E9;
+      --p2-light: #E8F7FF;
+      --p2-mid: #38BDF8;
+      --p3-color: #22C55E;
+      --p3-light: #EDFFF5;
+      --p3-mid: #4ADE80;
+      --p4-color: #F43F5E;
+      --p4-light: #FFF1F2;
+      --p4-mid: #FB7185;
+
+      --bg: #F2F2F7;
+      --bg-card: #FFFFFF;
+      --text-h: #000000;
+      --text-b: #1C1C1E;
+      --text-dim: #8E8E93;
+      --border: #E5E5EA;
+      --divider: #C6C6C8;
+
+      --font: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+      --r-xl: 24px;
+      --r-lg: 16px;
+      --r-md: 12px;
+      --safe-b: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text-b);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255, 107, 0, 0.07) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 0 16px;
+      padding-bottom: calc(96px + var(--safe-b));
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Loading */
+    .loading-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      gap: 18px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .loading-logo {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, var(--libe-orange), var(--libe-yellow));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      box-shadow: 0 12px 32px rgba(255, 107, 0, 0.3);
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        transform: scale(1);
+        box-shadow: 0 12px 32px rgba(255, 107, 0, 0.3);
+      }
+
+      50% {
+        transform: scale(1.06);
+        box-shadow: 0 16px 40px rgba(255, 107, 0, 0.45);
+      }
+    }
+
+    .loading-dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .loading-dots span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--libe-orange);
+      opacity: 0.3;
+      animation: dot 1.2s ease-in-out infinite;
+    }
+
+    .loading-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .loading-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes dot {
+
+      0%,
+      80%,
+      100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+      }
+
+      40% {
+        opacity: 1;
+        transform: scale(1.2);
+      }
+    }
+
+    .loading-text {
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+
+    /* Error */
+    .error-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      padding: 24px;
+      z-index: 10;
+      position: relative;
+    }
+
+    .error-content {
+      background: white;
+      border-radius: var(--r-xl);
+      padding: 32px 24px;
+      max-width: 360px;
+      text-align: center;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .error-icon {
+      font-size: 44px;
+      margin-bottom: 12px;
+    }
+
+    .error-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--libe-orange);
+      margin-bottom: 8px;
+    }
+
+    .error-message {
+      font-size: 14px;
+      color: var(--text-b);
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    /* App */
+    .app-content {
+      display: none;
+    }
+
+    .app-content.active {
+      display: block;
+    }
+
+    /* Header */
+    .header {
+      padding: 48px 0 28px;
+      text-align: center;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--libe-orange);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 5px 14px 5px 10px;
+      border-radius: 100px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
+    }
+
+    .header-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.6);
+      animation: blink 1.5s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 0.5;
+      }
+
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .header-title {
+      font-size: 38px;
+      font-weight: 800;
+      line-height: 1.25;
+      color: var(--text-h);
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    .header-title span {
+      color: var(--libe-orange);
+    }
+
+    .header-meta {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-dim);
+      line-height: 1.7;
+    }
+
+    /* Tab Info */
+    .tab-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+      padding: 14px 16px;
+      background: white;
+      border-radius: var(--r-lg);
+      border: 1.5px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      animation: fadeDown 0.3s ease;
+    }
+
+    @keyframes fadeDown {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .tab-info-icon-wrap {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+      background: var(--libe-orange-pale);
+    }
+
+    .tab-info-time {
+      font-size: 15px;
+      color: var(--text-dim);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .tab-info-theme {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text-h);
+      line-height: 1.35;
+    }
+
+    /* Bottom Tab Bar */
+    .bottom-tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 6px 16px calc(env(safe-area-inset-bottom, 0px) + 6px);
+      background: #ffffff;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .tab-inner {
+      display: flex;
+      gap: 4px;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px 4px 6px;
+      border: none;
+      background: transparent;
+      border-radius: 12px;
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-dim);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .tab-btn-label {
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .tab-btn-sub {
+      font-size: 10px;
+      font-weight: 600;
+      opacity: 0.7;
+    }
+
+    .tab-btn.active {
+      color: white;
+    }
+
+    .tab-btn.active.part1 {
+      background: var(--p1-color);
+    }
+
+    .tab-btn.active.part2 {
+      background: var(--p2-color);
+    }
+
+    .tab-btn.active.part3 {
+      background: var(--p3-color);
+    }
+
+    .tab-btn.active.part4 {
+      background: var(--p4-color);
+    }
+
+    /* Tab Contents */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Group Card */
+    .group-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .group-card {
+      background: white;
+      border-radius: var(--r-xl);
+      padding: 24px 20px 18px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+      border: 1.5px solid transparent;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      animation: cardIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .group-card:active {
+      transform: scale(0.97);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      border-color: var(--libe-orange-lt);
+      background: var(--libe-orange-pale);
+    }
+
+    .group-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 6px;
+      background: linear-gradient(90deg, var(--p2-color), var(--p2-mid));
+    }
+
+    .tab-content#part1 .group-card::before {
+      background: linear-gradient(90deg, var(--p1-color), var(--p1-mid));
+    }
+
+    .tab-content#part3 .group-card::before {
+      background: linear-gradient(90deg, var(--p3-color), var(--p3-mid));
+    }
+
+    .tab-content#part4 .group-card::before {
+      background: linear-gradient(90deg, var(--p4-color), var(--p4-mid));
+    }
+
+    @keyframes cardIn {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      gap: 12px;
+    }
+
+    .group-header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .group-name {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--libe-navy);
+      line-height: 1.2;
+      flex: 1;
+    }
+
+    .group-card-arrow {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--libe-orange-pale);
+      color: var(--libe-orange);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 900;
+      transition: all 0.2s ease;
+    }
+
+    .group-card:active .group-card-arrow {
+      background: var(--libe-orange);
+      color: white;
+      transform: translateX(4px);
+    }
+
+    .member-count-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--bg);
+      color: var(--text-dim);
+      padding: 6px 12px;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .group-members-list {
+      display: flex;
+      flex-direction: column;
+      border-top: 1px solid var(--border);
+      margin-top: 4px;
+    }
+
+    .member-list-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 4px;
+      border-bottom: 1px solid var(--libe-border);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--libe-text-main);
+      text-decoration: none;
+    }
+
+    .member-list-item.clickable {
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .member-list-item.clickable:active {
+      background: var(--libe-blue-light);
+    }
+
+    .member-list-item:last-child {
+      border-bottom: none;
+    }
+
+    .member-list-item.has-link {
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .member-tag-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--border);
+    }
+
+    .member-list-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-dim);
+    }
+
+    .member-link-arrow {
+      margin-left: auto;
+      font-size: 18px;
+      color: var(--divider);
+    }
+
+    /* Detail View */
+    .detail-view {
+      display: none;
+    }
+
+    .detail-view.active {
+      display: block;
+      animation: detailIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes detailIn {
+      from {
+        opacity: 0;
+        transform: translateX(30px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .detail-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 0 20px;
+    }
+
+    .back-btn {
+      width: 44px;
+      height: 44px;
+      border: none;
+      background: white;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-h);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .detail-title h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text-h);
+    }
+
+    .member-list-section {
+      background: white;
+      border-radius: var(--r-xl);
+      padding: 24px 20px 8px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text-dim);
+    }
+
+    /* Magic / Cards */
+    .magic-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0 30px;
+      margin-bottom: 12px;
+      border-bottom: 1px dashed var(--divider);
+    }
+
+    .magic-intro {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .magic-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(135deg, #f97316, #fbbf24);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 100px;
+      font-size: 15px;
+      font-weight: 800;
+      box-shadow: 0 4px 15px rgba(249, 115, 22, 0.25);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .magic-btn:active {
+      transform: scale(0.96);
+    }
+
+    .magic-btn-icon {
+      font-size: 20px;
+    }
+
+    .magic-loading {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      color: var(--text-dim);
+    }
+
+    .magic-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 107, 0, 0.1);
+      border-left-color: var(--libe-orange);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .magic-result {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      text-align: center;
+    }
+
+    #detail-cards {
+      display: none;
+    }
+
+    .cards-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: white;
+      border-radius: var(--r-xl);
+      padding: 24px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+      animation: fadeInUp 0.5s forwards;
+      opacity: 0;
+    }
+
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .footer {
+      text-align: center;
+      padding: 40px 0;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .footer-libe {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--libe-orange);
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 0 8px;
+      }
+
+      .header-title {
+        font-size: 32px;
+      }
+
+      .group-card {
+        padding: 20px 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-logo">🍻</div>
+    <div class="loading-dots"><span></span><span></span><span></span></div>
+    <div class="loading-text">データを読み込んでいます...</div>
+  </div>
+
+  <div class="error-screen" id="errorScreen">
+    <div class="error-content">
+      <div class="error-icon">⚠️</div>
+      <div class="error-title">データ読み込みエラー</div>
+      <div class="error-message" id="errorMessage">データの読み込みに失敗しました。</div>
+    </div>
+  </div>
+
+  <div class="app-content" id="appContent">
+    <div class="bottom-tab-bar">
+      <div class="tab-inner" id="tabsContainer"></div>
+    </div>
+
+    <div class="container">
+      <div class="header">
+        <div class="header-badge"><span class="header-badge-dot"></span>リベシティ オフ会</div>
+        <h1 class="header-title" id="eventName">はしご酒<br><span>グルーピング結果</span></h1>
+      </div>
+
+      <div id="tabInfoContainer"></div>
+
+      <div id="part1" class="tab-content active">
+        <div class="group-list" id="part1-list"></div>
+      </div>
+      <div id="part2" class="tab-content">
+        <div class="group-list" id="part2-list"></div>
+      </div>
+      <div id="part3" class="tab-content">
+        <div class="group-list" id="part3-list"></div>
+      </div>
+      <div id="part4" class="tab-content">
+        <div class="group-list" id="part4-list"></div>
+      </div>
+
+      <div id="detail-view" class="detail-view">
+        <div class="detail-header">
+          <button class="back-btn" id="back-btn">←</button>
+          <div class="detail-title">
+            <h1 id="detail-team-name"></h1>
+          </div>
+        </div>
+        <div class="member-list-section" id="detail-members"></div>
+        <div class="magic-container" id="magicContainer">
+          <div class="magic-intro">💡 おまけ：どんな話をすればいいか迷ったら...</div>
+          <button class="magic-btn" id="magicBtn" onclick="playMagicAnimation()">
+            <span class="magic-btn-icon">✨</span>AIマジックで会話のネタを探す
+          </button>
+          <div class="magic-loading" id="magicLoading">
+            <div class="magic-spinner"></div>
+            <div id="magicLoadingText">AIが会話が弾むヒントを考え中...</div>
+          </div>
+          <div class="magic-result" id="magicResult">
+            <div class="magic-result-emoji">🎈</div>
+            <div class="magic-result-text">会話のヒントが見つかりました！</div>
+          </div>
+        </div>
+        <div class="cards-grid" id="detail-cards"></div>
+      </div>
+
+      <div class="footer">
+        Generated by はしご酒 グルーピングシステム
+        <div class="footer-libe">🏙 LibeCity</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let appData = null;
+    let currentPartKey = null;
+
+    const PART_EMOJI = { part1: '1️⃣', part2: '2️⃣', part3: '3️⃣', part4: '👦' };
+    const categoryIcons = { EXPERIENCE: '⚡', HOBBY: '🎯', BUSINESS: '💼', VALUES: '⭐', OTHER: '•••' };
+
+    function initApp() {
+      if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+          .withSuccessHandler(onDataSuccess)
+          .withFailureHandler(onDataError)
+          .getWebAppData();
+      } else {
+        onDataSuccess({ error: 'GAS環境で実行してください。' });
+      }
+    }
+
+    function onDataSuccess(result) {
+      try {
+        if (!result) return;
+        appData = (typeof result === 'string') ? JSON.parse(result) : result;
+        if (appData.error) { showError(appData.error); return; }
+
+        document.getElementById('loadingScreen').style.display = 'none';
+        document.getElementById('appContent').classList.add('active');
+
+        if (appData.eventName) {
+          document.getElementById('eventName').innerHTML = appData.eventName + '<br><span>グルーピング結果</span>';
+        }
+
+        buildTabs();
+        ['part1', 'part2', 'part3', 'part4'].forEach(p => {
+          if (appData.parts[p]) renderGroupList(p);
+        });
+        setupTabHandlers();
+      } catch (e) { showError(e.message); }
+    }
+
+    function onDataError(e) { showError(e.message); }
+    function showError(msg) {
+      document.getElementById('loadingScreen').style.display = 'none';
+      document.getElementById('errorScreen').style.display = 'flex';
+      document.getElementById('errorMessage').textContent = msg;
+    }
+
+    function buildTabs() {
+      const tc = document.getElementById('tabsContainer');
+      tc.innerHTML = '';
+      const order = ['part1', 'part2', 'part3', 'part4'];
+      order.forEach((part, i) => {
+        const info = appData.partInfo[part];
+        const groupExists = appData.parts[part] && appData.parts[part].length > 0;
+        if (!info || !groupExists) return;
+
+        const btn = document.createElement('button');
+        btn.className = `tab-btn ${part}`;
+        // 最初の有効な要素を active にする
+        if (tc.children.length === 0) btn.classList.add('active');
+
+        btn.dataset.tab = part;
+        btn.innerHTML = `<span class="tab-btn-label">${info.label}</span><span class="tab-btn-sub">${info.time}〜</span>`;
+        tc.appendChild(btn);
+      });
+
+      const firstActiveBtn = tc.querySelector('.tab-btn.active');
+      if (firstActiveBtn) updateTabInfo(firstActiveBtn.dataset.tab);
+    }
+
+    function updateTabInfo(part) {
+      const info = appData.partInfo[part];
+      const container = document.getElementById('tabInfoContainer');
+      if (!info || !container) return;
+      container.innerHTML = `
+        <div class="tab-info">
+          <div class="tab-info-icon-wrap">${PART_EMOJI[part]}</div>
+          <div>
+            <div class="tab-info-time">⏰ 開始 ${info.time}</div>
+            <div class="tab-info-theme">${info.theme}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function setupTabHandlers() {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(t => {
+            t.classList.remove('active');
+            t.style.display = 'none';
+          });
+          btn.classList.add('active');
+          const id = btn.dataset.tab;
+          const content = document.getElementById(id);
+          content.classList.add('active');
+          content.style.display = 'block';
+          updateTabInfo(id);
+          document.getElementById('detail-view').classList.remove('active');
+          document.getElementById('tabInfoContainer').style.display = 'block';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
+    }
+
+    // メモリ上で表示状態を管理（リロードでリセット、アプリ内移動で保持）
+    const REVEALED_KEY = 'hago_session_revealed';
+    let revealedTeams = new Set();
+
+    function renderGroupList(part) {
+      const el = document.getElementById(`${part}-list`);
+      if (!el) return;
+      el.innerHTML = '';
+      const groups = (appData.parts[part] || []).slice().sort((a, b) => (a.team_name || '').localeCompare(b.team_name || '', 'ja'));
+      if (groups.length === 0) {
+        el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);">グループがありません</div>';
+        return;
+      }
+      groups.forEach(group => {
+        const card = document.createElement('div');
+        card.className = 'group-card';
+        card.innerHTML = `
+          <div class="group-header">
+            <div class="group-name">${escapeHtml(group.team_name)}</div>
+            <div class="group-header-right">
+              <div class="member-count-badge">👥 ${group.members.length}名</div>
+              <div class="group-card-arrow">→</div>
+            </div>
+          </div>
+          <div class="group-members-list">
+            ${group.members.map((m, i) => {
+          const icon = getIconUrl(m);
+          const pUrl = getProfileUrl(m);
+          return `
+                <div class="member-list-item">
+                  ${icon ? `<img class="member-tag-icon" src="${escapeHtml(icon)}" onerror="this.style.display='none'">` : `<div class="member-list-icon">${i + 1}</div>`}
+                  <span>${escapeHtml(m)}</span>
+                  ${pUrl ? `<a href="${escapeHtml(pUrl)}" target="_blank" class="member-link-arrow" onclick="event.stopPropagation();">→</a>` : ''}
+                </div>
+              `;
+        }).join('')}
+          </div>
+        `;
+        card.addEventListener('click', () => showDetail(group, part));
+        el.appendChild(card);
+      });
+    }
+
+    function showDetail(group, part) {
+      // 画面遷移時に最上部へスクロール
+      window.scrollTo({ top: 0, behavior: 'instant' });
+
+      currentPartKey = part;
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.getElementById('tabInfoContainer').style.display = 'none';
+
+      document.getElementById('detail-view').classList.add('active');
+      document.getElementById('detail-team-name').textContent = group.team_name;
+
+      // Part ID とチーム名（トリミング済み）を組み合わせて一意なキーを作成
+      const teamId = part + '|' + (group.team_name || '').trim();
+      const isRevealed = revealedTeams.has(teamId);
+
+      // マジック演出の状態管理
+      if (isRevealed) {
+        document.getElementById('magicContainer').style.display = 'none';
+        document.getElementById('detail-cards').style.display = 'flex';
+      } else {
+        document.getElementById('magicContainer').style.display = 'flex';
+        document.getElementById('magicBtn').style.display = 'flex';
+        document.getElementById('magicLoading').style.display = 'none';
+        document.getElementById('magicResult').style.display = 'none';
+        document.getElementById('detail-cards').style.display = 'none';
+      }
+
+      const members = group.members || [];
+      document.getElementById('detail-members').innerHTML = `
+        <div class="section-label">MEMBERS (${members.length}人)</div>
+        <div class="group-members-list">
+          ${members.map((m, i) => {
+        const icon = getIconUrl(m);
+        const pUrl = getProfileUrl(m);
+        return `
+              ${pUrl ? `<a href="${escapeHtml(pUrl)}" target="_blank" class="member-list-item clickable">` : `<div class="member-list-item">`}
+                ${icon ? `<img class="member-tag-icon" src="${escapeHtml(icon)}" onerror="this.style.display='none'">` : `<div class="member-list-icon">${i + 1}</div>`}
+                <span>${escapeHtml(m)}</span>
+                ${pUrl ? `<div class="member-link-arrow">→</div>` : ''}
+              ${pUrl ? `</a>` : `</div>`}
+            `;
+      }).join('')}
+        </div>
+      `;
+
+      const cc = document.getElementById('detail-cards');
+      cc.innerHTML = '';
+      const cards = group.cards || [];
+      if (cards.length > 0) {
+        cards.forEach(card => {
+          const ce = document.createElement('div');
+          ce.className = 'card';
+          const bg = getCategoryBgColor(card.category);
+          const txt = getCategoryTextColor(card.category);
+          const col = getCategoryColor(card.category);
+          ce.innerHTML = `
+          <div class="card-header" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+            <div class="card-icon" style="background:${bg};color:${col};padding:6px;border-radius:8px;font-size:20px;">
+              ${categoryIcons[card.category] || '•'}
+            </div>
+            <div class="card-badge" style="background:${bg};color:${txt};padding:4px 10px;border-radius:100px;font-size:12px;font-weight:700;">
+              ${card.category}
+            </div>
+          </div>
+          <div class="card-title" style="font-size:20px;font-weight:800;margin-bottom:8px;">${escapeHtml(card.title)}</div>
+          <div class="card-description" style="font-size:14px;color:var(--text-b);line-height:1.6;">${escapeHtml(card.description)}</div>
+          <div class="card-members" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+            <div style="font-size:11px;font-weight:800;color:var(--text-dim);margin-bottom:6px;">該当メンバー</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              ${card.members.map(m => `<span style="font-size:13px;font-weight:600;background:var(--bg);padding:2px 8px;border-radius:4px;">${escapeHtml(m)}</span>`).join('')}
+            </div>
+          </div>
+        `;
+          cc.appendChild(ce);
+        });
+      } else {
+        cc.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);width:100%;">会話のネタが生成されていません</div>';
+      }
+
+      document.getElementById('back-btn').onclick = () => backToList(part);
+
+      // AIボタンの存在を知らせるために自動スクロール
+      // 既に生成済みの場合はカード一覧のトップへ、未生成の場合は生成ボタンへ
+      setTimeout(() => {
+        const targetId = isRevealed ? 'detail-cards' : 'magicContainer';
+        const targetEl = document.getElementById(targetId);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 500); // 遷移アニメーションの完了を待ってから実行
+    }
+
+    function backToList(part) {
+      document.querySelectorAll('.tab-content').forEach(el => {
+        el.style.display = el.classList.contains('active') ? 'block' : 'none';
+      });
+      document.getElementById('tabInfoContainer').style.display = 'block';
+      document.getElementById('detail-view').classList.remove('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function playMagicAnimation() {
+      const teamName = document.getElementById('detail-team-name').textContent;
+      const btn = document.getElementById('magicBtn');
+      const loader = document.getElementById('magicLoading');
+      const cards = document.getElementById('detail-cards');
+      btn.style.display = 'none';
+      loader.style.display = 'flex';
+      setTimeout(() => {
+        loader.style.display = 'none';
+        document.getElementById('magicResult').style.display = 'flex';
+        cards.style.display = 'flex';
+
+        // セッション内の既読リストに追加（Part ID 込みの一意なキー）
+        const teamName = document.getElementById('detail-team-name').textContent;
+        const teamId = currentPartKey + '|' + (teamName || '').trim();
+        revealedTeams.add(teamId);
+
+        // 結果カードへスムーズにスクロール
+        setTimeout(() => {
+          document.getElementById('magicResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }, 2000);
+    }
+
+    function getCategoryColor(c) {
+      return { EXPERIENCE: '#C45300', HOBBY: '#22C55E', BUSINESS: '#8B5CF6', VALUES: '#F59E0B', OTHER: '#9C8E7E' }[c] || '#9C8E7E';
+    }
+    function getCategoryBgColor(c) {
+      return { EXPERIENCE: '#FFF3E8', HOBBY: '#EDFFF5', BUSINESS: '#F0EEFF', VALUES: '#FFFAEE', OTHER: '#F4F0EC' }[c] || '#F4F0EC';
+    }
+    function getCategoryTextColor(c) {
+      return { EXPERIENCE: '#C45300', HOBBY: '#15803D', BUSINESS: '#6D28D9', VALUES: '#92400E', OTHER: '#6B5E50' }[c] || '#6B5E50';
+    }
+    function getIconUrl(name) {
+      if (!appData || !appData.icons) return '';
+      return appData.icons[name] || '';
+    }
+    function getProfileUrl(name) {
+      if (!appData || !appData.profileUrls) return '';
+      return appData.profileUrls[name] || '';
+    }
+    function escapeHtml(t) {
+      if (!t) return '';
+      return t.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+    }
+
+    window.addEventListener('load', initApp);
+  </script>
+</body>
+
+</html>
