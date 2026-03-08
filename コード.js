@@ -763,6 +763,7 @@ function syncResultsFromSheet() {
 
     const data = sheet.getDataRange().getValues();
     const props = PropertiesService.getScriptProperties();
+    const settings = getSettings();
 
     // 現在のカード生成結果があれば取得（AI生成済みのサマリーを保持するため）
     const groupingResultStr = props.getProperty('cardResult') || props.getProperty('groupingResult') || '{}';
