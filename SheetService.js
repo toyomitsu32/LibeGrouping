@@ -185,3 +185,55 @@ function getNormalizedMappingData() {
 
     return { icons, profileUrls, displayNames };
 }
+
+/**
+ * シートの表形式データからグルーピング構造を解析する
+ */
+function parseSheetToGrouping(data, settings, groupingResult) {
+    const exceptionLabel = settings.exceptionCategoryName || '子連れ';
+    const partsLabelToKey = {
+        '【第1部】': 'part1', '【第2部】': 'part2', '【第3部】': 'part3',
+        [`【${exceptionLabel}】`]: 'part4'
+    };
+
+    let currentPartKey = null;
+    const newPartsData = { part1: [], part2: [], part3: [], part4: [] };
+
+    for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        const firstCell = String(row[0]).trim();
+
+        // 各部のセクション開始を検知
+        for (const [label, key] of Object.entries(partsLabelToKey)) {
+            if (firstCell.startsWith(label)) {
+                currentPartKey = key;
+                i++; // ヘッダー行をスキップ
+                break;
+            }
+        }
+
+        if (currentPartKey && firstCell && !partsLabelToKey[firstCell] &&
+            firstCell !== 'チーム名' && firstCell !== '人数' && firstCell !== '総合判定' && !firstCell.startsWith('🎊')) {
+
+            const teamName = firstCell;
+            const members = [];
+            // C列以降にメンバー名が入っている
+            for (let c = 2; c < row.length; c++) {
+                const mName = String(row[c]).trim();
+                if (mName) members.push(mName);
+            }
+
+            if (members.length > 0) {
+                // 既存のAI生成結果があれば引き継ぐ
+                const existingTeam = (groupingResult[currentPartKey] || []).find(t => t.team_name === teamName);
+                newPartsData[currentPartKey].push({
+                    team_name: teamName,
+                    members: members,
+                    summary: existingTeam ? existingTeam.summary : '',
+                    cards: existingTeam ? existingTeam.cards : []
+                });
+            }
+        }
+    }
+    return newPartsData;
+}

@@ -51,3 +51,44 @@ function parseJsonSafely(text) {
         throw new Error('AIからのレスポンスを解析できませんでした。');
     }
 }
+
+/**
+ * カード生成プロンプトを構築
+ */
+function buildPrompt(batchedGroups, profileMap) {
+    const teamsText = batchedGroups.map(group => {
+        return `チーム名: ${group.team_name}
+メンバーの自己紹介文:
+${group.members.map(name => `■ ${name}さんの自己紹介:\n${profileMap[name]}`).join('\n\n')}`;
+    }).join('\n\n======\n\n');
+
+    return `以下の複数チームのメンバープロフィールを分析し、**各チームごと**に「楽しい共通点カード」を【概ね6枚】作成してください。
+
+${teamsText}
+
+以下のJSON形式で返してください（Markdownブロックはつけず、生JSONのみ出力）。「チーム名」をキーにしてそれぞれのカード結果を含めてください。
+{
+  "チーム名A": {
+    "summary": "チームの盛り上がりを予感させる、総評（60文字〜100文字）",
+    "cards": [
+      {
+        "category": "EXPERIENCE|HOBBY|BUSINESS|VALUES|OTHER",
+        "title": "キャッチーで楽しい共通点のタイトル",
+        "description": "クスッと笑えたり「おっ！」と思える楽しい解説文。どのメンバー同士が共通しているのか会話のネタになるように（名前入り）。",
+        "members": ["該当メンバー名"]
+      }
+    ]
+  },
+  "チーム名B": {
+    "summary": "...",
+    "cards": [...]
+  }
+}
+
+ルール:
+- 出力キーはリクエストで渡した「チーム名」と一言一句一致させること
+- 各カードのcategoryはEXPERIENCE, HOBBY, BUSINESS, VALUES, OTHERのいずれか
+- membersには該当メンバーのフルネームをそのまま入れること
+- 1チームあたり【6個】程度の共通点を作成すること
+- **重要：年齢（同年代など）や性別、身体的特徴に関する共通点は除外すること**。趣味、経験、価値観、ビジネスなどの実用的な共通点にフォーカスのこと`;
+}
