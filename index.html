@@ -1213,11 +1213,13 @@
     }
     function getIconUrl(name) {
       if (!appData || !appData.icons) return '';
-      return appData.icons[name] || '';
+      const url = appData.icons[name] || '';
+      return (url && (url.startsWith('http') || url.startsWith('https'))) ? url : '';
     }
     function getProfileUrl(name) {
       if (!appData || !appData.profileUrls) return '';
-      return appData.profileUrls[name] || '';
+      const url = appData.profileUrls[name] || '';
+      return (url && (url.startsWith('http') || url.startsWith('https'))) ? url : '';
     }
     function getAccountName(name) {
       if (!appData || !appData.accounts) return name;

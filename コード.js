@@ -170,10 +170,29 @@ function getParticipants() {
     const part2 = isParticipating(part2Cell);
     const part3 = isParticipating(part3Cell);
     const part4 = isParticipating(part4Cell);
-    const account = String(row[11]).trim(); // 旧M列->L列
-    const profile = String(row[12]).trim(); // 旧N列->M列
-    const iconUrl = row[13] ? String(row[13]).trim() : ''; // 旧O列->N列
-    const profileUrl = row[14] ? String(row[14]).trim() : ''; // 旧P列->O列
+    // ヘッダーから重要カラムのインデックスを特定
+    let accountIdx = 11; // L
+    let profileIdx = 12; // M
+    let iconUrlIdx = 13; // N
+    let profileUrlIdx = 14; // O
+
+    for (let c = 0; c < headersRow2.length; c++) {
+      const h1 = String(headersRow1[c] || '');
+      const h2 = String(headersRow2[c] || '');
+      if (h1.includes('ニックネーム') || h2.includes('ニックネーム')) accountIdx = c;
+      if (h1.includes('自己紹介') || h1.includes('プロフィール文') || h2.includes('自己紹介') || h2.includes('プロフィール文')) profileIdx = c;
+      if (h1.includes('アイコン') || h2.includes('アイコン')) iconUrlIdx = c;
+      if (h1.includes('プロフィールURL') || h2.includes('プロフィールURL')) profileUrlIdx = c;
+    }
+
+    const account = String(row[accountIdx] || '').trim();
+    const profile = String(row[profileIdx] || '').trim();
+    const rawIconUrl = row[iconUrlIdx] ? String(row[iconUrlIdx]).trim() : '';
+    const rawProfileUrl = row[profileUrlIdx] ? String(row[profileUrlIdx]).trim() : '';
+
+    // URLの形式チェック（httpで始まるもののみ許可）
+    const iconUrl = (rawIconUrl.startsWith('http')) ? rawIconUrl : '';
+    const profileUrl = (rawProfileUrl.startsWith('http')) ? rawProfileUrl : '';
 
     // 名前が空の場合はスキップ
     if (!name) {
