@@ -941,9 +941,6 @@ function doGet() {
  */
 function getWebAppData() {
   try {
-    // Webアプリ表示時にまず最新のシート内容から同期を試みる
-    syncResultsFromSheet();
-
     const props = PropertiesService.getScriptProperties();
 
     // 1. まずシステムシート（完全なデータ）を確認
@@ -975,9 +972,13 @@ function getWebAppData() {
     Logger.log('Error in getWebAppData: ' + e.toString());
     return {
       eventName: 'はしご酒',
-      parts: { part1: [], part2: [], part3: [] },
-      partInfo: {},
-      tags: {},
+      parts: { part1: [], part2: [], part3: [], part4: [] },
+      partInfo: {
+        part1: { label: '第1部', time: '', theme: '' },
+        part2: { label: '第2部', time: '', theme: '' },
+        part3: { label: '第3部', time: '', theme: '' },
+        part4: { label: '例外', time: '', theme: '' }
+      },
       error: 'エラーが発生しました: ' + e.toString()
     };
   }
