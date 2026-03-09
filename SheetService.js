@@ -12,25 +12,30 @@ function getSettings() {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_SETTINGS);
     if (!sheet) throw new Error('設定シートが見つかりません');
 
-    const data = sheet.getRange('A1:B13').getValues();
+    // 行が挿入されてもずれないように、A列の文言（キーワード）で判定する
+    const data = sheet.getDataRange().getValues();
     const settings = {};
-    const mapping = {
-        2: 'eventName',
-        3: 'maxGroupSize',
-        4: 'minGroupSize',
-        5: 'part1Theme',
-        6: 'part2Theme',
-        7: 'part3Theme',
-        8: 'exceptionCategoryName',
-        9: 'part1Time',
-        10: 'part2Time',
-        11: 'part3Time',
-        12: 'part4Time'
-    };
 
-    for (const [row, key] of Object.entries(mapping)) {
-        const val = data[parseInt(row) - 1][1];
-        if (val != null && val !== '') {
+    for (let i = 0; i < data.length; i++) {
+        const label = String(data[i][0]).trim();
+        const val = data[i][1];
+
+        if (!label || val == null || val === '') continue;
+
+        let key = null;
+        if (label.includes('イベント名')) key = 'eventName';
+        else if (label.includes('最大人数')) key = 'maxGroupSize';
+        else if (label.includes('最小人数')) key = 'minGroupSize';
+        else if (label.includes('第1部') && label.includes('時間')) key = 'part1Time';
+        else if (label.includes('第2部') && label.includes('時間')) key = 'part2Time';
+        else if (label.includes('第3部') && label.includes('時間')) key = 'part3Time';
+        else if ((label.includes('例外') || label.includes('子連れ')) && label.includes('時間')) key = 'part4Time';
+        else if (label.includes('第1部')) key = 'part1Theme';
+        else if (label.includes('第2部')) key = 'part2Theme';
+        else if (label.includes('第3部')) key = 'part3Theme';
+        else if (label.includes('例外') || label.includes('子連れ')) key = 'exceptionCategoryName';
+
+        if (key) {
             if (val instanceof Date && key.includes('Time')) {
                 const h = val.getHours().toString().padStart(2, '0');
                 const m = val.getMinutes().toString().padStart(2, '0');
@@ -40,6 +45,7 @@ function getSettings() {
             }
         }
     }
+
     settings.maxGroupSize = parseInt(settings.maxGroupSize) || 4;
     settings.minGroupSize = parseInt(settings.minGroupSize) || 3;
     settings.exceptionCategoryName = settings.exceptionCategoryName || '例外';
