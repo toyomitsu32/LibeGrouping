@@ -96,6 +96,7 @@
       font-size: 46px;
       font-weight: 800;
       background: linear-gradient(135deg, var(--libe-orange), #ffaa00);
+      background-clip: text;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       letter-spacing: -0.02em;
@@ -1113,7 +1114,7 @@
         itemHtml += '<span class="member-name-text">' + escapeHtml(account) + '</span>';
 
         if (pUrl) {
-          itemHtml += '<div class="member-link-arrow">→</div></a>';
+          itemHtml += '<div class="member-link-arrow">›</div></a>';
         } else {
           itemHtml += '</div>';
         }

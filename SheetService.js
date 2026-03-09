@@ -108,7 +108,7 @@ function getParticipants() {
  */
 function getTeamNames() {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName(SHEET_SETTINGS) || ss.getSheetByName(SHEET_TEAMS);
+    const sheet = ss.getSheetByName(SHEET_SETTINGS);
     const settings = getSettings();
     const p1 = clean(settings.part1Theme) || '第1部';
     const p2 = clean(settings.part2Theme) || '第2部';
@@ -124,8 +124,8 @@ function getTeamNames() {
         }
     }
 
-    // もし 'part' ヘッダーが見つからなければ、従来の1行目から読み取る（互換性担保のため）
-    if (startRow === -1 && sheet.getName() === SHEET_TEAMS) {
+    // もし 'part' ヘッダーが見つからなければ、従来の1行目から読み取る（古い形式のシートの場合）
+    if (startRow === -1) {
         startRow = 1;
     }
 
