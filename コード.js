@@ -343,30 +343,31 @@ function runGrouping() {
       groupingResult[part.key] = groupData;
     }
 
-    // 結果をスクリプトプロパティに一時保存
-    const props = PropertiesService.getScriptProperties();
-    props.setProperty('groupingResult', JSON.stringify(groupingResult));
+    // 結果をスクリプトプロパティに一時保存（分割保存対応）
+    setLargeProperty('groupingResult', groupingResult);
 
-    // アイコンデータを保存
+    // アイコンデータを保存（分割保存対応）
     const iconsData = {};
     participants.forEach(p => {
       if (p.iconUrl) {
         iconsData[p.name] = p.iconUrl;
       }
     });
-    props.setProperty('iconsData', JSON.stringify(iconsData));
+    setLargeProperty('iconsData', iconsData);
 
-    // プロフィールURLデータを保存
+    // プロフィールURLデータを保存（分割保存対応）
     const profileUrlsData = {};
     participants.forEach(p => {
       if (p.profileUrl) {
         profileUrlsData[p.name] = p.profileUrl;
       }
     });
-    props.setProperty('profileUrlsData', JSON.stringify(profileUrlsData));
+    setLargeProperty('profileUrlsData', profileUrlsData);
 
     // 古いカード生成結果をクリアし、新しいグルーピング結果で上書き
+    const props = PropertiesService.getScriptProperties();
     props.deleteProperty('cardResult');
+    props.deleteProperty('cardResult_count'); // カウントも消去
 
     // 結果シートおよび WebApp 用データに保存
     saveAllResults();
@@ -624,12 +625,10 @@ function saveAllResults() {
     // 保存前にスプレッドシート側の手動調整内容を読み取って同期する
     syncResultsFromSheet();
 
-    const groupingResultStr = props.getProperty('cardResult') || props.getProperty('groupingResult') || '{}';
+    const groupingResultStr = getLargeProperty('cardResult') || getLargeProperty('groupingResult') || '{}';
     const groupingResult = JSON.parse(groupingResultStr);
-    const iconsDataStr = props.getProperty('iconsData') || '{}';
-    const iconsData = JSON.parse(iconsDataStr);
-    const profileUrlsDataStr = props.getProperty('profileUrlsData') || '{}';
-    const profileUrlsData = JSON.parse(profileUrlsDataStr);
+    const iconsData = JSON.parse(getLargeProperty('iconsData') || '{}');
+    const profileUrlsData = JSON.parse(getLargeProperty('profileUrlsData') || '{}');
 
     // WebAppで使用するフォーマットに整形
     const webAppData = {
@@ -679,8 +678,8 @@ function saveAllResults() {
     sheet.getRange('A1').setValue('【システム用データ】以下の行のデータはWebアプリが読み込むものです').setBackground('#fef08a').setFontWeight('bold');
 
     const jsonStr = JSON.stringify(webAppData);
-    // スクリプトプロパティに「完全なデータ」を保存
-    props.setProperty('webAppFinalData', jsonStr);
+    // スクリプトプロパティに「完全なデータ」を保存（分割保存対応）
+    setLargeProperty('webAppFinalData', jsonStr);
 
     if (jsonStr.length < 50000) {
       sheet.getRange('A2').setValue(jsonStr).setFontColor('#6b7280');
@@ -775,7 +774,7 @@ function syncResultsFromSheet() {
     const settings = getSettings();
 
     // 現在のカード生成結果があれば取得（AI生成済みのサマリーを保持するため）
-    const groupingResultStr = props.getProperty('cardResult') || props.getProperty('groupingResult') || '{}';
+    const groupingResultStr = getLargeProperty('cardResult') || getLargeProperty('groupingResult') || '{}';
     const groupingResult = JSON.parse(groupingResultStr);
 
     // 各部のデータをクリアして再構築
@@ -858,9 +857,8 @@ function syncResultsFromSheet() {
  */
 function saveAllResultsInternal(updatedResult) {
   const settings = getSettings();
-  const props = PropertiesService.getScriptProperties();
-  const iconsData = JSON.parse(props.getProperty('iconsData') || '{}');
-  const profileUrlsData = JSON.parse(props.getProperty('profileUrlsData') || '{}');
+  const iconsData = JSON.parse(getLargeProperty('iconsData') || '{}');
+  const profileUrlsData = JSON.parse(getLargeProperty('profileUrlsData') || '{}');
 
   const webAppData = {
     eventName: settings.eventName || 'はしご酒',
@@ -889,7 +887,7 @@ function saveAllResultsInternal(updatedResult) {
   if (sheet) {
     const jsonStr = JSON.stringify(webAppData);
     // スクリプトプロパティに「完全なデータ」を保存
-    props.setProperty('webAppFinalData', jsonStr);
+    setLargeProperty('webAppFinalData', jsonStr);
 
     if (jsonStr.length < 50000) {
       sheet.getRange('A2').setValue(jsonStr);
@@ -931,8 +929,8 @@ function getWebAppData() {
     const props = PropertiesService.getScriptProperties();
 
     // 1. まずスクリプトプロパティ（完全なデータ）を確認
-    const finalDataStr = props.getProperty('webAppFinalData');
-    if (finalDataStr && finalDataStr.length > 10) { // 警告文字列を避けるため単純な長さチェック
+    const finalDataStr = getLargeProperty('webAppFinalData');
+    if (finalDataStr && finalDataStr.length > 10) {
       return JSON.parse(finalDataStr);
     }
 
