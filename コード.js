@@ -597,8 +597,8 @@ ${teamsText}
     // 元の構造に生成したデータを書き戻す
     cardResult[targetPart] = groupingResult[targetPart] || [];
 
-    // 結果をスクリプトプロパティに保存
-    props.setProperty('cardResult', JSON.stringify(cardResult));
+    // 生成結果をスクリプトプロパティに保存（分割保存対応）
+    setLargeProperty('cardResult', cardResult);
 
     // 結果シートおよび WebApp 用データに最新状態を書き込む
     saveAllResults();
