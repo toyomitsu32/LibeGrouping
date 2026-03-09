@@ -910,8 +910,9 @@
         document.getElementById('appContent').classList.add('active');
 
         const eventElem = document.getElementById('eventName');
-        if (appData.eventName && eventElem) {
-          eventElem.innerHTML = appData.eventName;
+        if (appData.eventName) {
+          if (eventElem) eventElem.innerHTML = appData.eventName;
+          document.title = `TalkBridge | ${appData.eventName}`;
         }
 
         buildTabs();
