@@ -857,8 +857,23 @@ function syncResultsFromSheet() {
  */
 function saveAllResultsInternal(updatedResult) {
   const settings = getSettings();
-  const iconsData = getSystemData('iconsData') || {};
-  const profileUrlsData = getSystemData('profileUrlsData') || {};
+  let iconsData = getSystemData('iconsData');
+  let profileUrlsData = getSystemData('profileUrlsData');
+
+  // アイコンデータがシステムシートにない場合は、参加者シートから復旧を試みる
+  if (!iconsData || Object.keys(iconsData).length === 0) {
+    Logger.log('Icons data missing in system sheet, rebuilding from participants sheet...');
+    const participants = getParticipants();
+    iconsData = {};
+    profileUrlsData = {};
+    participants.forEach(p => {
+      if (p.iconUrl) iconsData[p.name] = p.iconUrl;
+      if (p.profileUrl) profileUrlsData[p.name] = p.profileUrl;
+    });
+    // 復旧したデータを保存
+    setSystemData('iconsData', iconsData);
+    setSystemData('profileUrlsData', profileUrlsData);
+  }
 
   const webAppData = {
     eventName: settings.eventName || 'はしご酒',
@@ -1022,7 +1037,7 @@ function setSystemData(key, value) {
     sheet.hideSheet();
   }
 
-  const jsonStr = value === null ? "" : JSON.stringify(value);
+  const jsonStr = (value === null) ? "" : (typeof value === 'string' ? value : JSON.stringify(value));
   const CHUNK_SIZE = 45000; // セルの5万文字制限に対し余裕を持たせる
   const chunks = [];
 
