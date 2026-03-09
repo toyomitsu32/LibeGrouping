@@ -4,7 +4,7 @@
  * メニューの初期化
  */
 function onOpen() {
-    SpreadsheetApp.getUi().createMenu('🎯 はしご酒グルーピング')
+    SpreadsheetApp.getUi().createMenu('TalkBridge メニュー')
         .addItem('① グルーピング実行', 'runGrouping')
         .addSeparator()
         .addItem('② 第1部のプロフィールから共通の話題を見つける', 'runCardGenerationPart1')
