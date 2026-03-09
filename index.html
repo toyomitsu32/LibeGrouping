@@ -1062,8 +1062,13 @@
       const teamId = part + '|' + (group.team_name || '').trim();
       const isRevealed = revealedTeams.has(teamId);
 
+      const hasCards = group.cards && group.cards.length > 0;
+
       // マジック演出の状態管理
-      if (isRevealed) {
+      if (!hasCards) {
+        document.getElementById('magicContainer').style.display = 'none';
+        document.getElementById('detail-cards').style.display = 'flex';
+      } else if (isRevealed) {
         document.getElementById('magicContainer').style.display = 'none';
         document.getElementById('detail-cards').style.display = 'flex';
       } else {
