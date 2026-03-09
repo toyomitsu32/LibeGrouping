@@ -1013,16 +1013,33 @@
       const el = document.getElementById(`${part}-list`);
       if (!el) return;
       el.innerHTML = '';
+
+      const searchTerm = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+
       const groups = (appData.parts[part] || []).slice().sort((a, b) => (a.team_name || '').localeCompare(b.team_name || '', 'ja'));
+
       if (groups.length === 0) {
         el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);">グループがありません</div>';
         return;
       }
-      groups.forEach(group => {
-        const card = document.createElement('div');
-        card.className = 'group-card';
 
-        // メンバーリストのHTMLを事前に生成（ネスト回避）
+      let matchCount = 0;
+
+      groups.forEach(group => {
+        // 検索フィルター
+        let isMatch = false;
+        if (!searchTerm) {
+          isMatch = true;
+        } else {
+          const accountNames = group.members.map(m => getAccountName(m).toLowerCase());
+          if (group.team_name.toLowerCase().includes(searchTerm)) isMatch = true;
+          if (accountNames.some(name => name.includes(searchTerm))) isMatch = true;
+        }
+
+        const card = document.createElement('div');
+        card.className = 'group-card' + (isMatch ? ' is-match' : '');
+
+        // メンバーリストのHTMLを事前に生成
         let memberHtml = '';
         group.members.forEach((m, i) => {
           const icon = getIconUrl(m);
@@ -1030,13 +1047,19 @@
           const account = getAccountName(m);
           const iconId = i + 1;
 
+          let displayName = escapeHtml(account);
+          if (searchTerm && account.toLowerCase().includes(searchTerm)) {
+            const regex = new RegExp(`(${searchTerm})`, 'gi');
+            displayName = displayName.replace(regex, '<span class="match-highlight">$1</span>');
+          }
+
           let itemHtml = '<div class="member-list-item">';
           if (icon) {
             itemHtml += '<img class="member-tag-icon" src="' + escapeHtml(icon) + '" onerror="this.onerror=null;this.src=\'https://ui-avatars.com/api/?name=' + encodeURIComponent(account) + '&background=random\';">';
           } else {
             itemHtml += '<div class="member-list-icon">' + iconId + '</div>';
           }
-          itemHtml += '<span class="member-name-text">' + escapeHtml(account) + '</span>';
+          itemHtml += '<span class="member-name-text">' + displayName + '</span>';
           itemHtml += '</div>';
           memberHtml += itemHtml;
         });
@@ -1054,6 +1077,47 @@
         card.addEventListener('click', () => showDetail(group, part));
         el.appendChild(card);
       });
+    }
+
+    let searchTimeout = null;
+    function handleSearch() {
+      const input = document.getElementById('searchInput');
+      const clearBtn = document.getElementById('searchClear');
+      if (!input || !clearBtn) return;
+
+      const searchTerm = input.value.trim();
+
+      if (searchTerm) {
+        clearBtn.classList.add('active');
+      } else {
+        clearBtn.classList.remove('active');
+      }
+
+      // 現在表示中のタブを再描画（ハイライト更新）
+      const activeTab = document.querySelector('.tab-btn.active');
+      if (activeTab && activeTab.dataset.tab) {
+        currentPartKey = activeTab.dataset.tab;
+        renderGroupList(currentPartKey);
+
+        // スクロール処理（描画完了を待つ）
+        if (searchTerm) {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(() => {
+            const firstMatch = document.querySelector('.tab-content.active .group-card.is-match');
+            if (firstMatch) {
+              firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 150);
+        }
+      }
+    }
+
+    function clearSearch() {
+      const input = document.getElementById('searchInput');
+      if (!input) return;
+      input.value = '';
+      handleSearch();
+      input.focus();
     }
 
     function showDetail(group, part) {
