@@ -829,6 +829,10 @@ function syncResultsFromSheet() {
     };
 
     // メンバー名とチーム名のみの情報を保存（軽量版）
+    const lightweightResult = {
+      timestamp: new Date().toISOString(),
+      ...newPartsData
+    };
     setSystemData('groupingResult', lightweightResult);
 
     // すでにカード生成済みのデータがある場合は、その構造も最新のメンバーに更新
@@ -1021,7 +1025,7 @@ function setSystemData(key, value) {
   const jsonStr = value === null ? "" : JSON.stringify(value);
   const CHUNK_SIZE = 45000; // セルの5万文字制限に対し余裕を持たせる
   const chunks = [];
-  
+
   if (jsonStr) {
     for (let i = 0; i < jsonStr.length; i += CHUNK_SIZE) {
       chunks.push([jsonStr.substring(i, i + CHUNK_SIZE)]);
@@ -1084,7 +1088,7 @@ function getSystemData(key) {
 
   const chunks = sheet.getRange(rowIndex, 3, 1, count).getValues()[0];
   const jsonStr = chunks.join("");
-  
+
   try {
     return JSON.parse(jsonStr);
   } catch (e) {
