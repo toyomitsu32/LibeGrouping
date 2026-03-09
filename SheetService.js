@@ -24,16 +24,16 @@ function getSettings() {
 
         let key = null;
         if (label.includes('イベント名')) key = 'eventName';
-        else if (label.includes('最大人数')) key = 'maxGroupSize';
-        else if (label.includes('最小人数')) key = 'minGroupSize';
-        else if (label.includes('第1部') && label.includes('時間')) key = 'part1Time';
-        else if (label.includes('第2部') && label.includes('時間')) key = 'part2Time';
-        else if (label.includes('第3部') && label.includes('時間')) key = 'part3Time';
-        else if ((label.includes('例外') || label.includes('子連れ')) && label.includes('時間')) key = 'part4Time';
-        else if (label.includes('第1部')) key = 'part1Theme';
-        else if (label.includes('第2部')) key = 'part2Theme';
-        else if (label.includes('第3部')) key = 'part3Theme';
-        else if (label.includes('例外') || label.includes('子連れ')) key = 'exceptionCategoryName';
+        else if (label.includes('最大')) key = 'maxGroupSize';
+        else if (label.includes('最小')) key = 'minGroupSize';
+        else if ((label.includes('第1部') || label.includes('Part1')) && (label.includes('時間') || label.includes('開始'))) key = 'part1Time';
+        else if ((label.includes('第2部') || label.includes('Part2')) && (label.includes('時間') || label.includes('開始'))) key = 'part2Time';
+        else if ((label.includes('第3部') || label.includes('Part3')) && (label.includes('時間') || label.includes('開始'))) key = 'part3Time';
+        else if ((label.includes('例外') || label.includes('子連れ') || label.includes('人数制限なし')) && (label.includes('時間') || label.includes('開始'))) key = 'part4Time';
+        else if (label.includes('第1部') || label.includes('Part1')) key = 'part1Theme';
+        else if (label.includes('第2部') || label.includes('Part2')) key = 'part2Theme';
+        else if (label.includes('第3部') || label.includes('Part3')) key = 'part3Theme';
+        else if (label.includes('例外') || label.includes('子連れ') || label.includes('人数制限なし')) key = 'exceptionCategoryName';
 
         if (key) {
             if (val instanceof Date && key.includes('Time')) {
