@@ -4,21 +4,45 @@
  * メニューの初期化
  */
 function onOpen() {
-    SpreadsheetApp.getUi().createMenu('TalkBridge メニュー')
-        .addItem('① グルーピング実行', 'runGrouping')
-        .addSeparator()
-        .addItem('② 第1部のプロフィールから共通の話題を見つける', 'runCardGenerationPart1')
-        .addItem('③ 第2部のプロフィールから共通の話題を見つける', 'runCardGenerationPart2')
-        .addItem('④ 第3部のプロフィールから共通の話題を見つける', 'runCardGenerationPart3')
-        .addItem('⑤ 例外チームのプロフィールから共通の話題を見つける', 'runCardGenerationPart4')
-        .addSeparator()
-        .addItem('🔄 手動調整をWebアプリに反映', 'syncResultsFromSheet')
-        .addSeparator()
-        .addItem('🌐 WebアプリURLを表示', 'showWebAppUrl')
-        .addItem('⚙️ 設定シートを開く', 'openSettingsSheet')
-        .addSeparator()
-        .addItem('🔑 APIキーを設定・再設定する', 'promptForApiKey')
-        .addToUi();
+    try {
+        const settings = getSettings();
+        const p1 = settings.part1Theme || '第1部';
+        const p2 = settings.part2Theme || '第2部';
+        const p3 = settings.part3Theme || '第3部';
+        const p4 = settings.exceptionCategoryName || '例外カテゴリー';
+
+        SpreadsheetApp.getUi().createMenu('TalkBridge メニュー')
+            .addItem('① グルーピング実行', 'runGrouping')
+            .addSeparator()
+            .addItem(`② ${p1}のプロフィールから共通の話題を見つける`, 'runCardGenerationPart1')
+            .addItem(`③ ${p2}のプロフィールから共通の話題を見つける`, 'runCardGenerationPart2')
+            .addItem(`④ ${p3}のプロフィールから共通の話題を見つける`, 'runCardGenerationPart3')
+            .addItem(`⑤ ${p4}のプロフィールから共通の話題を見つける`, 'runCardGenerationPart4')
+            .addSeparator()
+            .addItem('🔄 手動調整をWebアプリに反映', 'syncResultsFromSheet')
+            .addSeparator()
+            .addItem('🌐 WebアプリURLを表示', 'showWebAppUrl')
+            .addItem('⚙️ 設定シートを開く', 'openSettingsSheet')
+            .addSeparator()
+            .addItem('🔑 APIキーを設定・再設定する', 'promptForApiKey')
+            .addToUi();
+    } catch (e) {
+        SpreadsheetApp.getUi().createMenu('TalkBridge メニュー')
+            .addItem('① グルーピング実行', 'runGrouping')
+            .addSeparator()
+            .addItem('② 第1部のプロフィールから共通の話題を見つける', 'runCardGenerationPart1')
+            .addItem('③ 第2部のプロフィールから共通の話題を見つける', 'runCardGenerationPart2')
+            .addItem('④ 第3部のプロフィールから共通の話題を見つける', 'runCardGenerationPart3')
+            .addItem('⑤ 例外チームのプロフィールから共通の話題を見つける', 'runCardGenerationPart4')
+            .addSeparator()
+            .addItem('🔄 手動調整をWebアプリに反映', 'syncResultsFromSheet')
+            .addSeparator()
+            .addItem('🌐 WebアプリURLを表示', 'showWebAppUrl')
+            .addItem('⚙️ 設定シートを開く', 'openSettingsSheet')
+            .addSeparator()
+            .addItem('🔑 APIキーを設定・再設定する', 'promptForApiKey')
+            .addToUi();
+    }
 }
 
 /**
@@ -87,10 +111,10 @@ function distributeIntoGroups(members, minSize, maxSize) {
 /**
  * カード生成実行の各部ラッパー
  */
-function runCardGenerationPart1() { runCardGeneration('part1', '第1部'); }
-function runCardGenerationPart2() { runCardGeneration('part2', '第2部'); }
-function runCardGenerationPart3() { runCardGeneration('part3', '第3部'); }
-function runCardGenerationPart4() { runCardGeneration('part4', '例外チーム'); }
+function runCardGenerationPart1() { const s = getSettings(); runCardGeneration('part1', s.part1Theme || '第1部'); }
+function runCardGenerationPart2() { const s = getSettings(); runCardGeneration('part2', s.part2Theme || '第2部'); }
+function runCardGenerationPart3() { const s = getSettings(); runCardGeneration('part3', s.part3Theme || '第3部'); }
+function runCardGenerationPart4() { const s = getSettings(); runCardGeneration('part4', s.exceptionCategoryName || '例外チーム'); }
 
 /**
  * カード生成実行本体

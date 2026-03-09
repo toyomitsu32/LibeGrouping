@@ -109,8 +109,11 @@ function getParticipants() {
  */
 function getTeamNames() {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_TEAMS);
-    const data = sheet ? sheet.getDataRange().getValues() : [];
-    const teams = { '第1部': [], '第2部': [], '第3部': [] };
+    const settings = getSettings();
+    const p1 = clean(settings.part1Theme) || '第1部';
+    const p2 = clean(settings.part2Theme) || '第2部';
+    const p3 = clean(settings.part3Theme) || '第3部';
+    const teams = { [p1]: [], [p2]: [], [p3]: [] };
     for (let i = 1; i < data.length; i++) {
         const part = String(data[i][0]).trim();
         const name = String(data[i][1]).trim();
@@ -215,9 +218,14 @@ function setUserApiKey(key) {
  * シートの表形式データからグルーピング構造を解析する
  */
 function parseSheetToGrouping(data, settings, groupingResult) {
+    const clean = t => (t || '').replace(/\s?チーム$/, '');
+    const p1 = clean(settings.part1Theme) || '第1部';
+    const p2 = clean(settings.part2Theme) || '第2部';
+    const p3 = clean(settings.part3Theme) || '第3部';
     const exceptionLabel = settings.exceptionCategoryName || '子連れ';
+
     const partsLabelToKey = {
-        '【第1部】': 'part1', '【第2部】': 'part2', '【第3部】': 'part3',
+        [`【${p1}】`]: 'part1', [`【${p2}】`]: 'part2', [`【${p3}】`]: 'part3',
         [`【${exceptionLabel}】`]: 'part4'
     };
 
