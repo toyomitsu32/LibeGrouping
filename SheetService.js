@@ -10,17 +10,17 @@ function getSettings() {
     const data = sheet.getRange('A1:B12').getValues();
     const settings = {};
     const mapping = {
-        2: 'eventName',
-        3: 'maxGroupSize',
-        4: 'minGroupSize',
-        5: 'part1Theme',
-        6: 'part2Theme',
-        7: 'part3Theme',
-        8: 'exceptionCategoryName',
-        9: 'part1Time',
-        10: 'part2Time',
-        11: 'part3Time',
-        12: 'part4Time'
+        1: 'eventName',
+        2: 'maxGroupSize',
+        3: 'minGroupSize',
+        4: 'part1Theme',
+        5: 'part2Theme',
+        6: 'part3Theme',
+        7: 'exceptionCategoryName',
+        8: 'part1Time',
+        9: 'part2Time',
+        10: 'part3Time',
+        11: 'part4Time'
     };
 
     for (const [row, key] of Object.entries(mapping)) {
@@ -224,8 +224,10 @@ function parseSheetToGrouping(data, settings, groupingResult) {
     const exceptionLabel = settings.exceptionCategoryName || '子連れ';
 
     const partsLabelToKey = {
-        [`【${p1}】`]: 'part1', [`【${p2}】`]: 'part2', [`【${p3}】`]: 'part3',
-        [`【${exceptionLabel}】`]: 'part4'
+        [`【${p1}】`]: 'part1', '【第1部】': 'part1',
+        [`【${p2}】`]: 'part2', '【第2部】': 'part2',
+        [`【${p3}】`]: 'part3', '【第3部】': 'part3',
+        [`【${exceptionLabel}】`]: 'part4', '【子連れ】': 'part4', '【例外部】': 'part4'
     };
 
     let currentPartKey = null;
