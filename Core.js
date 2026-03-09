@@ -328,7 +328,6 @@ function reformatSettingsSheet() {
             ['第2部のテーマ', ''],
             ['第3部のテーマ', ''],
             ['例外カテゴリー名', '子連れ'],
-            ['運営など', ''],
             ['第1部 開始時間', '18:00'],
             ['第2部 開始時間', '19:30'],
             ['第3部 開始時間', '21:00'],
@@ -338,7 +337,7 @@ function reformatSettingsSheet() {
         sheet.getRange(1, 1, labels.length, 2).setValues(labels);
         sheet.setColumnWidth(1, 200);
         sheet.setColumnWidth(2, 300);
-        sheet.getRange('A1:A13').setBackground('#f3f4f6').setFontWeight('bold');
+        sheet.getRange('A1:A12').setBackground('#f3f4f6').setFontWeight('bold');
         sheet.getRange('B1').setFontColor('#9ca3af'); // APIキーの注意書きを薄く
 
         ss.setActiveSheet(sheet);
