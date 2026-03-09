@@ -6,10 +6,10 @@
 function onOpen() {
     try {
         const settings = getSettings();
-        const p1 = settings.part1Theme || '第1部';
-        const p2 = settings.part2Theme || '第2部';
-        const p3 = settings.part3Theme || '第3部';
-        const p4 = settings.exceptionCategoryName || '例外カテゴリー';
+        const p1 = clean(settings.part1Theme) || '第1部';
+        const p2 = clean(settings.part2Theme) || '第2部';
+        const p3 = clean(settings.part3Theme) || '第3部';
+        const p4 = clean(settings.exceptionCategoryName) || '例外カテゴリー';
 
         SpreadsheetApp.getUi().createMenu('TalkBridge メニュー')
             .addItem('① グルーピング実行', 'runGrouping')
@@ -27,21 +27,7 @@ function onOpen() {
             .addItem('🔑 APIキーを設定・再設定する', 'promptForApiKey')
             .addToUi();
     } catch (e) {
-        SpreadsheetApp.getUi().createMenu('TalkBridge メニュー')
-            .addItem('① グルーピング実行', 'runGrouping')
-            .addSeparator()
-            .addItem('② 第1部のプロフィールから共通の話題を見つける', 'runCardGenerationPart1')
-            .addItem('③ 第2部のプロフィールから共通の話題を見つける', 'runCardGenerationPart2')
-            .addItem('④ 第3部のプロフィールから共通の話題を見つける', 'runCardGenerationPart3')
-            .addItem('⑤ 例外チームのプロフィールから共通の話題を見つける', 'runCardGenerationPart4')
-            .addSeparator()
-            .addItem('🔄 手動調整をWebアプリに反映', 'syncResultsFromSheet')
-            .addSeparator()
-            .addItem('🌐 WebアプリURLを表示', 'showWebAppUrl')
-            .addItem('⚙️ 設定シートを開く', 'openSettingsSheet')
-            .addSeparator()
-            .addItem('🔑 APIキーを設定・再設定する', 'promptForApiKey')
-            .addToUi();
+        Logger.log('onOpen error: ' + e.message);
     }
 }
 
@@ -55,27 +41,32 @@ function runGrouping() {
         const participants = getParticipants();
         const teamNames = getTeamNames();
 
-        const result = { timestamp: new Date().toISOString(), part1: [], part2: [], part3: [], part4: [] };
+        const result = { timestamp: new Date().toISOString(), part1: [], part2: [], part3: [], exception: [] };
         const partsMapping = [
-            { key: 'part1', label: '第1部', single: false },
-            { key: 'part2', label: '第2部', single: false },
-            { key: 'part3', label: '第3部', single: false },
-            { key: 'part4', label: settings.exceptionCategoryName, single: true }
+            { key: 'part1', label: clean(settings.part1Theme) || '第1部', single: false },
+            { key: 'part2', label: clean(settings.part2Theme) || '第2部', single: false },
+            { key: 'part3', label: clean(settings.part3Theme) || '第3部', single: false },
+            { key: 'exception', label: clean(settings.exceptionCategoryName) || '例外', single: true }
         ];
 
         partsMapping.forEach(pm => {
             const members = participants.filter(p => p[pm.key]).map(p => p.name);
             if (members.length === 0) return;
 
+            const names = teamNames[pm.key] || [];
+            Logger.log(`Processing ${pm.key}: ${members.length} members, ${names.length} custom names found.`);
+
             if (pm.single) {
-                result[pm.key] = [{ team_name: `${pm.label}チーム`, members: members, summary: '', cards: [] }];
+                result[pm.key] = [{ team_name: names[0] || `${pm.label}チーム`, members: members, summary: '', cards: [] }];
             } else {
                 const groups = distributeIntoGroups(members, settings.minGroupSize, settings.maxGroupSize);
-                const names = teamNames[pm.label] || [];
-                result[pm.key] = groups.map((m, idx) => ({
-                    team_name: names[idx] || `${pm.label} チーム ${idx + 1}`,
-                    members: m, summary: '', cards: []
-                }));
+                result[pm.key] = groups.map((m, idx) => {
+                    const finalName = names[idx] || `${pm.label} チーム ${idx + 1}`;
+                    return {
+                        team_name: finalName,
+                        members: m, summary: '', cards: []
+                    };
+                });
             }
         });
 
@@ -114,7 +105,7 @@ function distributeIntoGroups(members, minSize, maxSize) {
 function runCardGenerationPart1() { const s = getSettings(); runCardGeneration('part1', s.part1Theme || '第1部'); }
 function runCardGenerationPart2() { const s = getSettings(); runCardGeneration('part2', s.part2Theme || '第2部'); }
 function runCardGenerationPart3() { const s = getSettings(); runCardGeneration('part3', s.part3Theme || '第3部'); }
-function runCardGenerationPart4() { const s = getSettings(); runCardGeneration('part4', s.exceptionCategoryName || '例外チーム'); }
+function runCardGenerationException() { const s = getSettings(); runCardGeneration('exception', s.exceptionCategoryName || '例外チーム'); }
 
 /**
  * カード生成実行本体
@@ -188,7 +179,7 @@ function syncResultsFromSheet() {
         if (!sheet) return;
         const data = sheet.getDataRange().getValues();
         const settings = getSettings();
-        const groupingResult = getSystemData('cardResult') || getSystemData('groupingResult') || { part1: [], part2: [], part3: [], part4: [] };
+        const groupingResult = getSystemData('cardResult') || getSystemData('groupingResult') || { part1: [], part2: [], part3: [], exception: [] };
 
         const newPartsData = parseSheetToGrouping(data, settings, groupingResult);
 
@@ -209,20 +200,20 @@ function saveAllResultsInternal(updatedResult) {
  * WebApp同期用ユーティリティ
  */
 function buildWebAppData(grouping, mapping, settings) {
-    const clean = t => (t || '').replace(/\s?チーム$/, '');
+    const clean = t => (t || '').toString().replace(/\s?チーム$/, '').trim();
     return {
         eventName: settings.eventName,
         parts: {
             part1: grouping.part1 || [],
             part2: grouping.part2 || [],
             part3: grouping.part3 || [],
-            part4: grouping.part4 || []
+            exception: grouping.exception || []
         },
         partInfo: {
             part1: { label: clean(settings.part1Theme) || '第1部', time: settings.part1Time, theme: clean(settings.part1Theme) },
             part2: { label: clean(settings.part2Theme) || '第2部', time: settings.part2Time, theme: clean(settings.part2Theme) },
             part3: { label: clean(settings.part3Theme) || '第3部', time: settings.part3Time, theme: clean(settings.part3Theme) },
-            part4: { label: settings.exceptionCategoryName || '例外', time: settings.part4Time, theme: settings.exceptionCategoryName }
+            exception: { label: clean(settings.exceptionCategoryName) || '例外', time: settings.part4Time, theme: clean(settings.exceptionCategoryName) }
         },
         icons: mapping.icons,
         profileUrls: mapping.profileUrls,
@@ -266,7 +257,19 @@ function paintResultsToSheet(webAppData) {
     sheet.getRange(currentRow, 1).setValue(`🎊 ${webAppData.eventName} グルーピング結果 🎊`).setFontWeight('bold').setFontSize(14);
     currentRow += 2;
 
-    const partsKeys = ['part1', 'part2', 'part3', 'part4'];
+    const partsKeys = ['part1', 'part2', 'part3', 'exception'];
+
+    // 全チームの中での最大人数を計算
+    let maxMembersGlobal = 0;
+    partsKeys.forEach(key => {
+        const partGroups = webAppData.parts[key] || [];
+        partGroups.forEach(g => {
+            if (g.members.length > maxMembersGlobal) maxMembersGlobal = g.members.length;
+        });
+    });
+    // 少なくとも10列分はヘッダーを作る（見た目の整合性のため）
+    const displayMaxMembers = Math.max(10, maxMembersGlobal);
+
     for (const key of partsKeys) {
         const partGroups = webAppData.parts[key];
         if (!partGroups || partGroups.length === 0) continue;
@@ -275,15 +278,14 @@ function paintResultsToSheet(webAppData) {
         sheet.getRange(currentRow, 1).setValue(`【${partInfo.label}】 ${partInfo.time} 〜 （テーマ：${partInfo.theme || 'なし'}）`).setFontWeight('bold').setBackground('#f3f4f6');
         currentRow++;
 
-        const maxMembers = 10;
-        const headerRow = ['チーム名', '人数', ...Array.from({ length: maxMembers }, (_, i) => 'メンバー' + (i + 1))];
+        const headerRow = ['チーム名', '人数', ...Array.from({ length: displayMaxMembers }, (_, i) => 'メンバー' + (i + 1))];
         sheet.getRange(currentRow, 1, 1, headerRow.length).setValues([headerRow]).setFontWeight('bold').setBackground('#e5e7eb');
         currentRow++;
 
         const outputData = partGroups.map(group => [
             group.team_name,
             `${group.members.length}名`,
-            ...Array.from({ length: maxMembers }, (_, m) => group.members[m] || '')
+            ...Array.from({ length: displayMaxMembers }, (_, m) => group.members[m] || '')
         ]);
 
         if (outputData.length > 0) {
@@ -295,7 +297,8 @@ function paintResultsToSheet(webAppData) {
 
     sheet.setColumnWidth(1, 150);
     sheet.setColumnWidth(2, 60);
-    for (let c = 3; c <= 12; c++) sheet.setColumnWidth(c, 200);
+    const totalCols = displayMaxMembers + 2;
+    for (let c = 3; c <= totalCols; c++) sheet.setColumnWidth(c, 200);
 }
 
 /**

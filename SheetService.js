@@ -57,7 +57,7 @@ function getParticipants() {
     if (lastRow < DATA_START_ROW) return [];
 
     const settings = getSettings();
-    const targetLabel = settings.exceptionCategoryName.toLowerCase();
+    const targetLabel = clean(settings.exceptionCategoryName).toLowerCase();
 
     const maxCol = 40;
     const range = sheet.getRange(DATA_START_ROW, 1, lastRow - DATA_START_ROW + 1, maxCol);
@@ -81,7 +81,12 @@ function getParticipants() {
         }
         if ((combined.includes('プロフurl') || combined.includes('プロフィールurl')) && !combined.includes('画像')) profileUrlIdx = c;
         if (combined.includes('自己紹介') || combined.includes('本文') || (combined.includes('プロフィール') && !combined.includes('url'))) profileIdx = c;
-        if (combined.includes('ovice') || combined.includes(targetLabel) || combined.includes('参加')) {
+        if (combined.includes(targetLabel)) {
+            if (c >= 6) {
+                oViceIdx = c;
+                break; // 具体的なラベルが見つかったら確定
+            }
+        } else if (combined.includes('ovice') || combined.includes('参加')) {
             if (c >= 6) oViceIdx = c;
         }
     }
@@ -99,7 +104,7 @@ function getParticipants() {
 
         return {
             no: row[0], name: name, gender: String(row[2]).trim(),
-            part1: parts[0], part2: parts[1], part3: parts[2], part4: parts[3],
+            part1: parts[0], part2: parts[1], part3: parts[2], exception: parts[3],
             account: String(row[accountIdx] || '').trim() || name,
             profile: String(row[profileIdx] || '').trim(),
             iconUrl: String(row[iconUrlIdx] || '').trim(),
@@ -115,41 +120,41 @@ function getTeamNames() {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(SHEET_SETTINGS);
     const settings = getSettings();
-    const p1 = clean(settings.part1Theme) || '第1部';
-    const p2 = clean(settings.part2Theme) || '第2部';
-    const p3 = clean(settings.part3Theme) || '第3部';
-    const teams = { [p1]: [], [p2]: [], [p3]: [] };
 
-    const data = sheet.getDataRange().getValues();
-    let startRow = -1;
+    const p4 = clean(settings.exceptionCategoryName) || '例外';
+
+    const teams = { part1: [], part2: [], part3: [], exception: [] };
+
+    // A21:B57 の範囲を明示的に取得
+    const range = sheet.getRange('A21:B57');
+    const data = range.getValues();
+
     for (let i = 0; i < data.length; i++) {
-        if (String(data[i][0]).toLowerCase().trim() === 'part') {
-            startRow = i + 1;
-            break;
+        const rawA = String(data[i][0]).trim();
+        const rawB = String(data[i][1]).trim();
+        if (!rawA || !rawB || rawA.toLowerCase() === 'part') continue;
+
+        Logger.log(`Checking table row ${i + 21}: A=[${rawA}], B=[${rawB}]`);
+
+        // 数字のみ抽出
+        const match = rawA.match(/\d+/);
+        const num = match ? match[0] : null;
+
+        let targetKey = null;
+        if (num === '1' || rawA.toLowerCase().includes('part1') || rawA.includes('第1部')) targetKey = 'part1';
+        else if (num === '2' || rawA.toLowerCase().includes('part2') || rawA.includes('第2部')) targetKey = 'part2';
+        else if (num === '3' || rawA.toLowerCase().includes('part3') || rawA.includes('第3部')) targetKey = 'part3';
+        else if (num === '4' || rawA.toLowerCase().includes('part4') || rawA.toLowerCase().includes('exception') ||
+            rawA.includes('例外') || rawA.includes('子連れ') || rawA.includes('コズレ')) targetKey = 'exception';
+
+        if (targetKey) {
+            teams[targetKey].push(rawB);
         }
     }
 
-    // もし 'part' ヘッダーが見つからなければ、従来の1行目から読み取る（古い形式のシートの場合）
-    if (startRow === -1) {
-        startRow = 1;
-    }
+    // デバッグ用ログ: 読み取れたチーム名の数を出力
+    Logger.log('TeamNames loaded: ' + Object.keys(teams).map(k => `${k}:${teams[k].length}`).join(', '));
 
-    if (startRow !== -1) {
-        for (let i = startRow; i < data.length; i++) {
-            const part = String(data[i][0]).trim();
-            const name = String(data[i][1]).trim();
-            if (part && name) {
-                let targetKey = part;
-                const pLower = part.toLowerCase();
-                if (pLower === 'part1' || part === '第1部' || part === '【第1部】') targetKey = p1;
-                else if (pLower === 'part2' || part === '第2部' || part === '【第2部】') targetKey = p2;
-                else if (pLower === 'part3' || part === '第3部' || part === '【第3部】') targetKey = p3;
-
-                if (!teams[targetKey]) teams[targetKey] = [];
-                teams[targetKey].push(name);
-            }
-        }
-    }
     return teams;
 }
 
@@ -252,44 +257,48 @@ function parseSheetToGrouping(data, settings, groupingResult) {
     const p1 = clean(settings.part1Theme) || '第1部';
     const p2 = clean(settings.part2Theme) || '第2部';
     const p3 = clean(settings.part3Theme) || '第3部';
-    const exceptionLabel = settings.exceptionCategoryName || '子連れ';
+    const exceptionLabel = clean(settings.exceptionCategoryName) || '子連れ';
 
     const partsLabelToKey = {
-        [`【${p1}】`]: 'part1', '【第1部】': 'part1',
-        [`【${p2}】`]: 'part2', '【第2部】': 'part2',
-        [`【${p3}】`]: 'part3', '【第3部】': 'part3',
-        [`【${exceptionLabel}】`]: 'part4', '【子連れ】': 'part4', '【例外部】': 'part4'
+        [`【${p1}】`]: 'part1', '【第1部】': 'part1', '第1部': 'part1',
+        [`【${p2}】`]: 'part2', '【第2部】': 'part2', '第2部': 'part2',
+        [`【${p3}】`]: 'part3', '【第3部】': 'part3', '第3部': 'part3',
+        [`【${exceptionLabel}】`]: 'exception', '【例外】': 'exception', '例外': 'exception', '子連れ': 'exception', 'コズレ': 'exception'
     };
 
     let currentPartKey = null;
-    const newPartsData = { part1: [], part2: [], part3: [], part4: [] };
+    const newPartsData = { part1: [], part2: [], part3: [], exception: [] };
 
     for (let i = 0; i < data.length; i++) {
         const row = data[i];
         const firstCell = String(row[0]).trim();
 
         // 各部のセクション開始を検知
+        let foundPart = false;
         for (const [label, key] of Object.entries(partsLabelToKey)) {
             if (firstCell.startsWith(label)) {
                 currentPartKey = key;
-                i++; // ヘッダー行をスキップ
+                foundPart = true;
                 break;
             }
         }
+        if (foundPart) continue;
 
         if (currentPartKey && firstCell && !partsLabelToKey[firstCell] &&
-            firstCell !== 'チーム名' && firstCell !== '人数' && firstCell !== '総合判定' && !firstCell.startsWith('🎊')) {
+            firstCell !== 'チーム名' && firstCell !== '人数' && firstCell !== 'チーム名 / メンバー' &&
+            firstCell !== '区分/人数' &&
+            firstCell !== '総合判定' && !firstCell.startsWith('🎊')) {
 
             const teamName = firstCell;
             const members = [];
             // C列以降にメンバー名が入っている
             for (let c = 2; c < row.length; c++) {
                 const mName = String(row[c]).trim();
-                if (mName) members.push(mName);
+                // "名"で終わるセル（旧バージョンのゴミや人数）を弾く
+                if (mName && !mName.endsWith('名')) members.push(mName);
             }
 
             if (members.length > 0) {
-                // 既存のAI生成結果があれば引き継ぐ
                 const existingTeam = (groupingResult[currentPartKey] || []).find(t => t.team_name === teamName);
                 newPartsData[currentPartKey].push({
                     team_name: teamName,

@@ -6,7 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>TalkBridge | グルーピング結果</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       --libe-orange: #FF6B00;
@@ -35,7 +36,7 @@
       --border: #E5E5EA;
       --divider: #C6C6C8;
 
-      --font: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+      --font: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif;
       --r-xl: 24px;
       --r-lg: 16px;
       --r-md: 12px;
@@ -221,63 +222,57 @@
 
     /* Header */
     .header {
-      padding: 48px 0 28px;
+      padding: 32px 0 32px;
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
-    .header-badge {
-      display: inline-flex;
+    .header-branding {
+      display: flex;
+      flex-direction: column;
       align-items: center;
       gap: 6px;
-      background: var(--libe-orange);
-      color: white;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      padding: 5px 14px 5px 10px;
-      border-radius: 100px;
-      margin-top: 20px;
-      box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
+      margin-bottom: 24px;
     }
 
-    .header-badge-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.6);
-      animation: blink 1.5s ease-in-out infinite;
+    .header-tool-badge {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--libe-orange);
+      letter-spacing: -0.02em;
+      margin-bottom: 2px;
     }
 
-    @keyframes blink {
-
-      0%,
-      100% {
-        opacity: 0.5;
-      }
-
-      50% {
-        opacity: 1;
-      }
+    .header-tagline {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-dim);
+      letter-spacing: 0.02em;
     }
 
     .header-title {
-      font-size: 38px;
-      font-weight: 800;
-      line-height: 1.25;
+      font-size: 40px;
+      font-weight: 900;
+      line-height: 1.15;
       color: var(--text-h);
       letter-spacing: -0.02em;
-      margin-bottom: 6px;
+      margin-bottom: 12px;
+      max-width: 95%;
     }
 
-    .header-title span {
-      color: var(--libe-orange);
-    }
-
-    .header-meta {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-dim);
-      line-height: 1.4;
+    .header-grouping-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: white;
+      background: var(--libe-orange);
+      padding: 4px 12px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      letter-spacing: 0.05em;
+      box-shadow: 2px 2px 0px rgba(255, 107, 0, 0.2);
     }
 
     /* Tab Info */
@@ -397,7 +392,7 @@
       background: var(--p3-color);
     }
 
-    .tab-btn.active.part4 {
+    .tab-btn.active.exception {
       background: var(--p4-color);
     }
 
@@ -479,7 +474,7 @@
       background: linear-gradient(90deg, var(--p3-color), var(--p3-mid));
     }
 
-    .tab-content#part4 .group-card::before {
+    .tab-content#exception .group-card::before {
       background: linear-gradient(90deg, var(--p4-color), var(--p4-mid));
     }
 
@@ -801,7 +796,8 @@
       }
 
       .header-title {
-        font-size: 32px;
+        font-size: 34px;
+        line-height: 1.15;
       }
 
       .group-card {
@@ -833,9 +829,12 @@
 
     <div class="container">
       <div class="header">
-        <h1 class="header-title"><span>TalkBridge</span></h1>
-        <div class="header-meta">オフ会の準備を、もっとスムーズに。</div>
-        <div class="header-badge"><span class="header-badge-dot"></span><span id="eventName">オフ会</span></div>
+        <div class="header-branding">
+          <div class="header-tool-badge">TalkBridge</div>
+          <div class="header-tagline">オフ会の準備を、もっとスムーズに。</div>
+        </div>
+        <h1 class="header-title" id="eventName">イベント名称</h1>
+        <div class="header-grouping-label">参加者一覧</div>
       </div>
 
       <div id="tabInfoContainer"></div>
@@ -849,8 +848,8 @@
       <div id="part3" class="tab-content">
         <div class="group-list" id="part3-list"></div>
       </div>
-      <div id="part4" class="tab-content">
-        <div class="group-list" id="part4-list"></div>
+      <div id="exception" class="tab-content">
+        <div class="group-list" id="exception-list"></div>
       </div>
 
       <div id="detail-view" class="detail-view">
@@ -888,7 +887,6 @@
     let appData = null;
     let currentPartKey = null;
 
-    const PART_EMOJI = { part1: 'Part1', part2: 'Part2', part3: 'Part3', part4: '例外' };
     const categoryIcons = { EXPERIENCE: '⚡', HOBBY: '🎯', BUSINESS: '💼', VALUES: '⭐', OTHER: '•••' };
 
     function initApp() {
@@ -929,7 +927,7 @@
 
         buildTabs();
 
-        const parts = ['part1', 'part2', 'part3', 'part4'];
+        const parts = ['part1', 'part2', 'part3', 'exception'];
         parts.forEach(p => {
           if (appData.parts && appData.parts[p] && appData.parts[p].length > 0) {
             renderGroupList(p);
@@ -954,7 +952,7 @@
     function buildTabs() {
       const tc = document.getElementById('tabsContainer');
       tc.innerHTML = '';
-      const order = ['part1', 'part2', 'part3', 'part4'];
+      const order = ['part1', 'part2', 'part3', 'exception'];
       order.forEach((part, i) => {
         const info = appData.partInfo[part];
         const groupExists = appData.parts[part] && appData.parts[part].length > 0;
