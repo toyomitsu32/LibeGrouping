@@ -966,12 +966,11 @@
       const info = appData.partInfo[part];
       const container = document.getElementById('tabInfoContainer');
       if (!info || !container) return;
-      const partName = part === 'part4' ? '子連れ/例外' : part.replace('part', 'Part');
       container.innerHTML = `
         <div class="tab-info" style="justify-content: center; text-align: center;">
           <div>
-            <div class="tab-info-time">${partName}  ⏰ 開始 ${info.time}</div>
-            <div class="tab-info-theme" style="margin-top: 4px; font-size: 18px;">${info.theme}</div>
+            <div class="tab-info-time">⏰ 開始 ${info.time}</div>
+            <div class="tab-info-theme" style="margin-top: 6px; font-size: 20px; font-weight: 800; color: var(--libe-text-main);">${info.theme}</div>
           </div>
         </div>
       `;
