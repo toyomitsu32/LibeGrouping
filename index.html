@@ -92,30 +92,31 @@
       z-index: 10;
     }
 
-    .loading-logo {
-      width: 72px;
-      height: 72px;
-      border-radius: 20px;
-      background: linear-gradient(135deg, var(--libe-orange), var(--libe-yellow));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 36px;
-      box-shadow: 0 12px 32px rgba(255, 107, 0, 0.3);
-      animation: pulse 1.6s ease-in-out infinite;
+    .loading-title {
+      font-size: 44px;
+      font-weight: 800;
+      color: var(--libe-orange);
+      letter-spacing: -0.02em;
+      opacity: 0;
+      transform: translateY(12px);
+      animation: loadTitleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
-    @keyframes pulse {
+    .loading-tagline {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-dim);
+      margin-top: -8px;
+      margin-bottom: 24px;
+      opacity: 0;
+      transform: translateY(12px);
+      animation: loadTitleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.15s;
+    }
 
-      0%,
-      100% {
-        transform: scale(1);
-        box-shadow: 0 12px 32px rgba(255, 107, 0, 0.3);
-      }
-
-      50% {
-        transform: scale(1.06);
-        box-shadow: 0 16px 40px rgba(255, 107, 0, 0.45);
+    @keyframes loadTitleIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
 
@@ -809,9 +810,9 @@
 
 <body>
   <div class="loading-screen" id="loadingScreen">
-    <div class="loading-logo">💬✨</div>
+    <div class="loading-title">TalkBridge</div>
+    <div class="loading-tagline">オフ会の準備を、もっとスムーズに。</div>
     <div class="loading-dots"><span></span><span></span><span></span></div>
-    <div class="loading-text">データを読み込んでいます...</div>
   </div>
 
   <div class="error-screen" id="errorScreen">
