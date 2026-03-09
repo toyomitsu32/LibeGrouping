@@ -16,6 +16,8 @@ function onOpen() {
         .addSeparator()
         .addItem('🌐 WebアプリURLを表示', 'showWebAppUrl')
         .addItem('⚙️ 設定シートを開く', 'openSettingsSheet')
+        .addSeparator()
+        .addItem('🔑 APIキーを設定・再設定する', 'promptForApiKey')
         .addToUi();
 }
 
