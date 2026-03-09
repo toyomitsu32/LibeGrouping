@@ -16,7 +16,6 @@ function onOpen() {
         .addSeparator()
         .addItem('🌐 WebアプリURLを表示', 'showWebAppUrl')
         .addItem('⚙️ 設定シートを開く', 'openSettingsSheet')
-        .addItem('🔧 設定シートの項目を整理する', 'reformatSettingsSheet')
         .addSeparator()
         .addItem('🔑 APIキーを設定・再設定する', 'promptForApiKey')
         .addToUi();
@@ -308,42 +307,6 @@ function openSettingsSheet() {
     if (sheet) ss.setActiveSheet(sheet);
 }
 
-/**
- * 設定シートの項目名（A列）を新しい構成に並べ替える
- */
-function reformatSettingsSheet() {
-    handleError(() => {
-        const ss = SpreadsheetApp.getActiveSpreadsheet();
-        let sheet = ss.getSheetByName(SHEET_SETTINGS);
-        if (!sheet) {
-            sheet = ss.insertSheet(SHEET_SETTINGS);
-        }
-
-        const labels = [
-            ['【APIキー】', '※メニューから個別に設定してください'],
-            ['イベント名', ''],
-            ['最大グループ人数', '4'],
-            ['最小グループ人数', '3'],
-            ['第1部のテーマ', ''],
-            ['第2部のテーマ', ''],
-            ['第3部のテーマ', ''],
-            ['例外カテゴリー名', '子連れ'],
-            ['第1部 開始時間', '18:00'],
-            ['第2部 開始時間', '19:30'],
-            ['第3部 開始時間', '21:00'],
-            ['例外部 開始時間', '18:00']
-        ];
-
-        sheet.getRange(1, 1, labels.length, 2).setValues(labels);
-        sheet.setColumnWidth(1, 200);
-        sheet.setColumnWidth(2, 300);
-        sheet.getRange('A1:A12').setBackground('#f3f4f6').setFontWeight('bold');
-        sheet.getRange('B1').setFontColor('#9ca3af'); // APIキーの注意書きを薄く
-
-        ss.setActiveSheet(sheet);
-        showToast('設定シートの項目を整理しました。値を入力してください。', '完了');
-    }, '設定シート整理');
-}
 
 /**
  * APIキーの入力を求めるダイアログを表示
