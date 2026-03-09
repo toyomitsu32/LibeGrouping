@@ -897,6 +897,7 @@ function saveAllResultsInternal(updatedResult) {
     },
     icons: iconsData,
     profileUrls: profileUrlsData,
+    accounts: getAccountsMap(), // アカウント表示名のマップを追加
     timestamp: new Date().toISOString()
   };
 
