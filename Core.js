@@ -7,10 +7,10 @@ function onOpen() {
     SpreadsheetApp.getUi().createMenu('🎯 はしご酒グルーピング')
         .addItem('① グルーピング実行', 'runGrouping')
         .addSeparator()
-        .addItem('② 第1部のカード生成', 'runCardGenerationPart1')
-        .addItem('③ 第2部のカード生成', 'runCardGenerationPart2')
-        .addItem('④ 第3部のカード生成', 'runCardGenerationPart3')
-        .addItem('⑤ 例外チームのカード生成', 'runCardGenerationPart4')
+        .addItem('② 第1部のプロフィールから共通の話題を見つける', 'runCardGenerationPart1')
+        .addItem('③ 第2部のプロフィールから共通の話題を見つける', 'runCardGenerationPart2')
+        .addItem('④ 第3部のプロフィールから共通の話題を見つける', 'runCardGenerationPart3')
+        .addItem('⑤ 例外チームのプロフィールから共通の話題を見つける', 'runCardGenerationPart4')
         .addSeparator()
         .addItem('🔄 手動調整をWebアプリに反映', 'syncResultsFromSheet')
         .addSeparator()
@@ -95,7 +95,7 @@ function runCardGenerationPart4() { runCardGeneration('part4', '例外チーム'
  */
 function runCardGeneration(targetPart, partLabel) {
     handleError(() => {
-        showToast(`${partLabel}のカード生成中...`, 'AI処理');
+        showToast(`${partLabel}の共通の話題を分析中...`, 'AI処理');
         const settings = getSettings();
         if (!settings.geminiApiKey) throw new Error('APIキーが未設定です');
 
@@ -128,8 +128,8 @@ function runCardGeneration(targetPart, partLabel) {
         cardResult[targetPart] = groups;
         setSystemData('cardResult', cardResult);
         saveAllResults(true); // 更新した内容をそのまま保存
-        showToast(`${partLabel}のカード生成が完了しました！`, '成功');
-    }, `${partLabel}カード生成`);
+        showToast(`${partLabel}の共通の話題が見つかりました！`, '成功');
+    }, `${partLabel}分析`);
 }
 
 /**
