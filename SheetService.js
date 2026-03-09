@@ -35,7 +35,7 @@ function getSettings() {
         else if (label.includes('第3部') || label.includes('Part3')) key = 'part3Theme';
         else if (label.includes('例外') || label.includes('子連れ') || label.includes('人数制限なし')) key = 'exceptionCategoryName';
 
-        if (key) {
+        if (key && settings[key] === undefined) {
             if (val instanceof Date && key.includes('Time')) {
                 const h = val.getHours().toString().padStart(2, '0');
                 const m = val.getMinutes().toString().padStart(2, '0');
@@ -138,9 +138,9 @@ function getTeamNames() {
         const rawB = String(data[i][1]).trim();
         if (!rawA || !rawB || rawA.toLowerCase() === 'part') continue;
 
-        // "第1部"や"Part1"などの設定自体（開始時間など）を拾わないためのガード
-        // カスタムチーム名の行はA列が「Part1」等のカテゴリー名、B列が「グループ名」になっている
-        // 設定値のB列は「18:00」等の時刻だったり、「4」等の数値であることが多い
+        // "第1部"や"Part1"などの設定自体を拾わないためのガード
+        // 設定項目のラベル（名称、時間、人数など）が含まれている行は無視する
+        if (rawA.includes('名称') || rawA.includes('時間') || rawA.includes('開始') || rawA.includes('人数') || rawA.includes('イベント')) continue;
         if (rawB.includes(':') || !isNaN(Number(rawB))) continue;
 
         // 数字のみ抽出
