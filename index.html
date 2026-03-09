@@ -1005,12 +1005,13 @@
             ${group.members.map((m, i) => {
           const icon = getIconUrl(m);
           const pUrl = getProfileUrl(m);
+          const account = getAccountName(m);
           return `
-                <div class="member-list-item">
-                  ${icon ? `<img class="member-tag-icon" src="${escapeHtml(icon)}" onerror="this.style.display='none'">` : `<div class="member-list-icon">${i + 1}</div>`}
-                  <span>${escapeHtml(m)}</span>
-                  ${pUrl ? `<a href="${escapeHtml(pUrl)}" target="_blank" class="member-link-arrow" onclick="event.stopPropagation();">→</a>` : ''}
-                </div>
+                ${pUrl ? `<a href="${escapeHtml(pUrl)}" target="_blank" class="member-list-item has-link" onclick="event.stopPropagation();">` : `<div class="member-list-item">`}
+                  ${icon ? `<img class="member-tag-icon" src="${escapeHtml(icon)}" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(account)}&background=random';">` : `<div class="member-list-icon">${i + 1}</div>`}
+                  <span class="member-name-text">${escapeHtml(account)}</span>
+                  ${pUrl ? `<div class="member-link-arrow">→</div>` : ''}
+                ${pUrl ? `</a>` : `</div>`}
               `;
         }).join('')}
           </div>
@@ -1054,10 +1055,11 @@
           ${members.map((m, i) => {
         const icon = getIconUrl(m);
         const pUrl = getProfileUrl(m);
+        const account = getAccountName(m);
         return `
-              ${pUrl ? `<a href="${escapeHtml(pUrl)}" target="_blank" class="member-list-item clickable">` : `<div class="member-list-item">`}
-                ${icon ? `<img class="member-tag-icon" src="${escapeHtml(icon)}" onerror="this.style.display='none'">` : `<div class="member-list-icon">${i + 1}</div>`}
-                <span>${escapeHtml(m)}</span>
+              ${pUrl ? `<a href="${escapeHtml(pUrl)}" target="_blank" class="member-list-item has-link clickable">` : `<div class="member-list-item">`}
+                ${icon ? `<img class="member-tag-icon" src="${escapeHtml(icon)}" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(account)}&background=random';">` : `<div class="member-list-icon">${i + 1}</div>`}
+                <span class="member-name-text">${escapeHtml(account)}</span>
                 ${pUrl ? `<div class="member-link-arrow">→</div>` : ''}
               ${pUrl ? `</a>` : `</div>`}
             `;
@@ -1161,6 +1163,10 @@
     function getProfileUrl(name) {
       if (!appData || !appData.profileUrls) return '';
       return appData.profileUrls[name] || '';
+    }
+    function getAccountName(name) {
+      if (!appData || !appData.accounts) return name;
+      return appData.accounts[name] || name;
     }
     function escapeHtml(t) {
       if (!t) return '';

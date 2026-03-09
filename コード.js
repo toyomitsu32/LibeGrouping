@@ -626,6 +626,7 @@ function saveAllResults() {
     const groupingResult = getSystemData('cardResult') || getSystemData('groupingResult') || {};
     const iconsData = getSystemData('iconsData') || {};
     const profileUrlsData = getSystemData('profileUrlsData') || {};
+    const accountsData = getAccountsMap();
 
     // WebAppで使用するフォーマットに整形
     const webAppData = {
@@ -660,6 +661,7 @@ function saveAllResults() {
       },
       icons: iconsData,
       profileUrls: profileUrlsData,
+      accounts: accountsData,
       timestamp: new Date().toISOString()
     };
 
@@ -1019,6 +1021,18 @@ function shuffleArray(arr) {
  */
 function showToast(message, title) {
   SpreadsheetApp.getActiveSpreadsheet().toast(message, title || 'はしご酒グルーピング', 5);
+}
+
+/**
+ * 参加者の名前とアカウント表示名のマッピングを取得
+ */
+function getAccountsMap() {
+  const participants = getParticipants();
+  const map = {};
+  participants.forEach(p => {
+    map[p.name] = p.account || p.name;
+  });
+  return map;
 }
 // ===== SYSTEM DATA STORAGE (System Sheet) =====
 
