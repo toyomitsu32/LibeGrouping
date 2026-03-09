@@ -1021,26 +1021,14 @@
           const account = getAccountName(m);
           const iconId = i + 1;
 
-          let itemHtml = '';
-          if (pUrl) {
-            itemHtml += '<a href="' + escapeHtml(pUrl) + '" target="_blank" class="member-list-item has-link" onclick="event.stopPropagation();">';
-          } else {
-            itemHtml += '<div class="member-list-item">';
-          }
-
+          let itemHtml = '<div class="member-list-item">';
           if (icon) {
             itemHtml += '<img class="member-tag-icon" src="' + escapeHtml(icon) + '" onerror="this.onerror=null;this.src=\'https://ui-avatars.com/api/?name=' + encodeURIComponent(account) + '&background=random\';">';
           } else {
             itemHtml += '<div class="member-list-icon">' + iconId + '</div>';
           }
-
           itemHtml += '<span class="member-name-text">' + escapeHtml(account) + '</span>';
-
-          if (pUrl) {
-            itemHtml += '<div class="member-link-arrow">→</div></a>';
-          } else {
-            itemHtml += '</div>';
-          }
+          itemHtml += '</div>';
           memberHtml += itemHtml;
         });
 
