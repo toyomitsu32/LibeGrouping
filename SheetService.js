@@ -1,6 +1,11 @@
 // ===== スプレッドシート操作 (SheetService.js) =====
 
 /**
+ * 文字列のクリーンアップ（「チーム」の削除とトリミング）
+ */
+const clean = t => (t || '').toString().replace(/\s?チーム$/, '').trim();
+
+/**
  * 設定シートから設定値を読み込む
  */
 function getSettings() {
@@ -244,7 +249,6 @@ function setUserApiKey(key) {
  * シートの表形式データからグルーピング構造を解析する
  */
 function parseSheetToGrouping(data, settings, groupingResult) {
-    const clean = t => (t || '').replace(/\s?チーム$/, '');
     const p1 = clean(settings.part1Theme) || '第1部';
     const p2 = clean(settings.part2Theme) || '第2部';
     const p3 = clean(settings.part3Theme) || '第3部';
