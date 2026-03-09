@@ -904,11 +904,19 @@
         }
 
         buildTabs();
-        ['part1', 'part2', 'part3', 'part4'].forEach(p => {
-          if (appData.parts[p]) renderGroupList(p);
+
+        const parts = ['part1', 'part2', 'part3', 'part4'];
+        parts.forEach(p => {
+          if (appData.parts && appData.parts[p] && appData.parts[p].length > 0) {
+            renderGroupList(p);
+          }
         });
+
         setupTabHandlers();
-      } catch (e) { showError(e.message); }
+      } catch (e) {
+        console.error(e);
+        showError("表示処理中にエラーが発生しました: " + e.message);
+      }
     }
 
     function onDataError(e) { showError(e.message); }
