@@ -55,7 +55,7 @@ function runGrouping() {
 
         setSystemData('groupingResult', result);
         setSystemData('cardResult', null); // 以前のAI結果をリセット
-        saveAllResults();
+        saveAllResults(true); // True = 同期スキップ（計算したての結果をそのまま保存）
         showToast('グルーピングが完了しました！', '成功');
     }, 'グルーピング実行');
 }
@@ -127,7 +127,7 @@ function runCardGeneration(targetPart, partLabel) {
 
         cardResult[targetPart] = groups;
         setSystemData('cardResult', cardResult);
-        saveAllResults();
+        saveAllResults(true); // 更新した内容をそのまま保存
         showToast(`${partLabel}のカード生成が完了しました！`, '成功');
     }, `${partLabel}カード生成`);
 }
@@ -135,9 +135,11 @@ function runCardGeneration(targetPart, partLabel) {
 /**
  * 保存・同期ロジック
  */
-function saveAllResults() {
+function saveAllResults(skipSync = false) {
     handleError(() => {
-        syncResultsFromSheet();
+        if (!skipSync) {
+            syncResultsFromSheet();
+        }
         const grouping = getSystemData('cardResult') || getSystemData('groupingResult') || {};
         const mapping = getNormalizedMappingData();
         const webAppData = buildWebAppData(grouping, mapping, getSettings());
