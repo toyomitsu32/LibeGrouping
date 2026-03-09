@@ -9,7 +9,7 @@ function onOpen() {
         const p1 = clean(settings.part1Theme) || '第1部';
         const p2 = clean(settings.part2Theme) || '第2部';
         const p3 = clean(settings.part3Theme) || '第3部';
-        const p4 = clean(settings.exceptionCategoryName) || '例外カテゴリー';
+        const p4 = clean(settings.exceptionCategoryName) || '例外';
 
         SpreadsheetApp.getUi().createMenu('TalkBridge メニュー')
             .addItem('① グルーピング実行', 'runGrouping')
@@ -105,7 +105,7 @@ function distributeIntoGroups(members, minSize, maxSize) {
 function runCardGenerationPart1() { const s = getSettings(); runCardGeneration('part1', s.part1Theme || '第1部'); }
 function runCardGenerationPart2() { const s = getSettings(); runCardGeneration('part2', s.part2Theme || '第2部'); }
 function runCardGenerationPart3() { const s = getSettings(); runCardGeneration('part3', s.part3Theme || '第3部'); }
-function runCardGenerationPart4() { const s = getSettings(); runCardGeneration('exception', s.exceptionCategoryName || '例外チーム'); }
+function runCardGenerationPart4() { const s = getSettings(); runCardGeneration('exception', s.exceptionCategoryName || '例外'); }
 
 /**
  * カード生成実行本体
@@ -133,7 +133,7 @@ function runCardGeneration(targetPart, partLabel) {
         for (let i = 0; i < groups.length; i++) {
             const group = groups[i];
             const prompt = buildPrompt(group, profileMap);
-            const response = callGemini(prompt, settings.geminiApiKey);
+            const response = callGemini(prompt, apiKey);
             const data = parseJsonSafely(response);
 
             if (data) {
