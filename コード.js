@@ -153,7 +153,7 @@ function getParticipants() {
   const participants = [];
 
   // 列インデックスの特定（ループの外で一度だけ行う）
-  // デフォルト値: B(1)=実名, L(11)=画像URL, M(12)=プロフURL, N(13)=プロフィール本文
+  // 初期値: B(1)=実名, L(11)=画像URL, M(12)=プロフURL, N(13)=プロフィール本文
   let accountIdx = 1;
   let iconUrlIdx = 11;
   let profileUrlIdx = 12;
@@ -165,26 +165,32 @@ function getParticipants() {
     const h2 = String(allHeadersRow2[c] || '').trim();
     const h3 = String(allHeadersRow3[c] || '').trim();
     const combined = (h1 + h2 + h3);
+    const combinedLower = combined.toLowerCase();
 
-    if (combined.includes('ニックネーム') || combined.includes('アカウント') || combined.includes('表示名') || combined.includes('プロフ用名')) {
-      if (!combined.includes('系列')) accountIdx = c; // 系列との重複を避ける
+    // ニックネーム（アカウント名）: 「系列」という言葉があれば除外
+    if ((combined.includes('ニックネーム') || combined.includes('アカウント') || combined.includes('表示名')) && !combined.includes('系列')) {
+      accountIdx = c;
     }
+    // 系列/カテゴリー
     if (combined.includes('系列') || combined.includes('カテゴリー')) {
       categoryIdx = c;
     }
-    if (combined.includes('画像URL') || combined.includes('アイコン') || (combined.includes('URL') && combined.includes('画像'))) {
+    // アイコン画像URL
+    if (combined.includes('画像URL') || (combined.includes('アイコン') && combined.includes('URL'))) {
       iconUrlIdx = c;
     }
-    if (combined.includes('プロフURL') || combined.includes('プロフィールURL') || (combined.includes('URL') && !combined.includes('画像'))) {
+    // プロフィールURL: アイコン画像と言っていない方のURL
+    if ((combined.includes('プロフURL') || combined.includes('プロフィールURL')) && !combined.includes('画像')) {
       profileUrlIdx = c;
     }
+    // 自己紹介（プロフィール本文）
     if (combined.includes('自己紹介') || combined.includes('プロフィール本文') || combined.includes('プロフ本文')) {
       profileIdx = c;
     }
   }
 
-  Logger.log(`[Mapping Settings] Account:${accountIdx}, Icon:${iconUrlIdx}, ProfileURL:${profileUrlIdx}, ProfileContent:${profileIdx}, Category:${categoryIdx}`);
-  if (i === 0) Logger.log(`Header Row2 Sample: ${JSON.stringify(allHeadersRow2.slice(0, 20))}`);
+  // 確定したマッピングをログ出力
+  Logger.log(`[ColMapping] Name:B(1), Account:${accountIdx}, Category:${categoryIdx}, IconURL:${iconUrlIdx}, ProfileURL:${profileUrlIdx}, ProfileContent:${profileIdx}`);
 
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
@@ -209,13 +215,14 @@ function getParticipants() {
 
     const account = String(row[accountIdx] || '').trim();
     const profile = String(row[profileIdx] || '').trim();
-    // URLは http 判定を少し緩める（前後の空白除去に留める）
+
+    // URL取得とバリデーション
     const rawIconUrl = String(row[iconUrlIdx] || '').trim();
     const rawProfileUrl = String(row[profileUrlIdx] || '').trim();
 
-    // Web表示時に壊れないよう最低限 http を確認
-    const iconUrl = rawIconUrl.indexOf('http') === 0 ? rawIconUrl : '';
-    const profileUrl = rawProfileUrl.indexOf('http') === 0 ? rawProfileUrl : '';
+    // http で始まるかどうかの判定（大文字小文字無視）
+    const iconUrl = rawIconUrl.toLowerCase().indexOf('http') === 0 ? rawIconUrl : '';
+    const profileUrl = rawProfileUrl.toLowerCase().indexOf('http') === 0 ? rawProfileUrl : '';
 
     if (!name) continue;
 
