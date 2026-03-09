@@ -131,16 +131,17 @@ function getTeamNames() {
 
     const teams = { part1: [], part2: [], part3: [], exception: [] };
 
-    // A21:B57 の範囲を明示的に取得
-    const range = sheet.getRange('A21:B57');
-    const data = range.getValues();
+    const data = sheet.getDataRange().getValues();
 
     for (let i = 0; i < data.length; i++) {
         const rawA = String(data[i][0]).trim();
         const rawB = String(data[i][1]).trim();
         if (!rawA || !rawB || rawA.toLowerCase() === 'part') continue;
 
-        Logger.log(`Checking table row ${i + 21}: A=[${rawA}], B=[${rawB}]`);
+        // "第1部"や"Part1"などの設定自体（開始時間など）を拾わないためのガード
+        // カスタムチーム名の行はA列が「Part1」等のカテゴリー名、B列が「グループ名」になっている
+        // 設定値のB列は「18:00」等の時刻だったり、「4」等の数値であることが多い
+        if (rawB.includes(':') || !isNaN(Number(rawB))) continue;
 
         // 数字のみ抽出
         const match = rawA.match(/\d+/);
@@ -151,7 +152,7 @@ function getTeamNames() {
         else if (num === '2' || rawA.toLowerCase().includes('part2') || rawA.includes('第2部')) targetKey = 'part2';
         else if (num === '3' || rawA.toLowerCase().includes('part3') || rawA.includes('第3部')) targetKey = 'part3';
         else if (num === '4' || rawA.toLowerCase().includes('part4') || rawA.toLowerCase().includes('exception') ||
-            rawA.includes('例外') || rawA.includes('子連れ') || rawA.includes('コズレ')) targetKey = 'exception';
+            rawA.includes('例外') || rawA.includes('子連れ') || rawA.includes('コズレ') || rawA.includes('人数制限なし')) targetKey = 'exception';
 
         if (targetKey) {
             teams[targetKey].push(rawB);
