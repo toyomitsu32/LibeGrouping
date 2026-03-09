@@ -196,10 +196,10 @@ function buildWebAppData(grouping, mapping, settings) {
             part4: grouping.part4 || []
         },
         partInfo: {
-            part1: { label: '第1部', time: settings.part1Time, theme: clean(settings.part1Theme) },
-            part2: { label: '第2部', time: settings.part2Time, theme: clean(settings.part2Theme) },
-            part3: { label: '第3部', time: settings.part3Time, theme: clean(settings.part3Theme) },
-            part4: { label: settings.exceptionCategoryName, time: settings.part4Time, theme: settings.exceptionCategoryName }
+            part1: { label: clean(settings.part1Theme) || '第1部', time: settings.part1Time, theme: clean(settings.part1Theme) },
+            part2: { label: clean(settings.part2Theme) || '第2部', time: settings.part2Time, theme: clean(settings.part2Theme) },
+            part3: { label: clean(settings.part3Theme) || '第3部', time: settings.part3Time, theme: clean(settings.part3Theme) },
+            part4: { label: settings.exceptionCategoryName || '例外', time: settings.part4Time, theme: settings.exceptionCategoryName }
         },
         icons: mapping.icons,
         profileUrls: mapping.profileUrls,
