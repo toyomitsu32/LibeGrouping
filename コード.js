@@ -1001,3 +1001,94 @@ function shuffleArray(arr) {
 function showToast(message, title) {
   SpreadsheetApp.getActiveSpreadsheet().toast(message, title || 'はしご酒グルーピング', 5);
 }
+// ===== SYSTEM DATA STORAGE (System Sheet) =====
+
+const SYSTEM_SHEET_NAME = '_システムデータ_';
+
+/**
+ * 隠しシート（システムデータ）にデータを保存する
+ * @param {string} key - 保存キー
+ * @param {any} value - 保存データ
+ */
+function setSystemData(key, value) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SYSTEM_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(SYSTEM_SHEET_NAME);
+    sheet.hideSheet();
+  }
+
+  const jsonStr = value === null ? "" : JSON.stringify(value);
+  const CHUNK_SIZE = 45000; // セルの5万文字制限に対し余裕を持たせる
+  const chunks = [];
+  
+  if (jsonStr) {
+    for (let i = 0; i < jsonStr.length; i += CHUNK_SIZE) {
+      chunks.push([jsonStr.substring(i, i + CHUNK_SIZE)]);
+    }
+  }
+
+  // キーを探す
+  const keys = sheet.getRange("A:A").getValues();
+  let rowIndex = -1;
+  for (let i = 0; i < keys.length; i++) {
+    if (keys[i][0] === key) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    rowIndex = sheet.getLastRow() + 1;
+    sheet.getRange(rowIndex, 1).setValue(key);
+  }
+
+  // 既存のデータ行をクリア
+  const currentCount = parseInt(sheet.getRange(rowIndex, 2).getValue() || "0");
+  if (currentCount > 0) {
+    sheet.getRange(rowIndex, 3, 1, currentCount).clearContent();
+  }
+
+  // 新しいデータを横に並べて保存
+  if (chunks.length > 0) {
+    const output = chunks.map(c => c[0]);
+    sheet.getRange(rowIndex, 3, 1, output.length).setValues([output]);
+    sheet.getRange(rowIndex, 2).setValue(output.length);
+  } else {
+    sheet.getRange(rowIndex, 2).setValue(0);
+  }
+}
+
+/**
+ * 隠しシート（システムデータ）からデータを取得する
+ * @param {string} key - 取得キー
+ * @returns {any} 復元されたデータ（オブジェクト）
+ */
+function getSystemData(key) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SYSTEM_SHEET_NAME);
+  if (!sheet) return null;
+
+  const keys = sheet.getRange("A:A").getValues();
+  let rowIndex = -1;
+  for (let i = 0; i < keys.length; i++) {
+    if (keys[i][0] === key) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+  if (rowIndex === -1) return null;
+
+  const count = parseInt(sheet.getRange(rowIndex, 2).getValue() || "0");
+  if (count === 0) return null;
+
+  const chunks = sheet.getRange(rowIndex, 3, 1, count).getValues()[0];
+  const jsonStr = chunks.join("");
+  
+  try {
+    return JSON.parse(jsonStr);
+  } catch (e) {
+    Logger.log("Error parsing system data for " + key + ": " + e.toString());
+    return null;
+  }
+}
