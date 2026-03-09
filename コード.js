@@ -940,14 +940,17 @@ function doGet() {
  * WebAppデータを取得（クライアントサイドから呼び出し）
  */
 function getWebAppData() {
+  Logger.log('getWebAppData called');
   try {
     const props = PropertiesService.getScriptProperties();
 
     // 1. まずシステムシート（完全なデータ）を確認
     const finalData = getSystemData('webAppFinalData');
     if (finalData) {
+      Logger.log('Found webAppFinalData in system sheet. Size: ' + (typeof finalData === 'string' ? finalData.length : JSON.stringify(finalData).length));
       return finalData;
     }
+    Logger.log('webAppFinalData not found in system sheet');
 
     // 2. プロパティにない場合、または警告のみの場合はシートからフォールバック
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_RESULTS);
