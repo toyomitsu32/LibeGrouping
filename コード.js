@@ -905,23 +905,23 @@ function syncResultsFromSheet() {
  */
 function saveAllResultsInternal(updatedResult) {
   const settings = getSettings();
-  let iconsData = getSystemData('iconsData');
-  let profileUrlsData = getSystemData('profileUrlsData');
 
-  // アイコンデータがシステムシートにない場合は、参加者シートから復旧を試みる
-  if (!iconsData || Object.keys(iconsData).length === 0) {
-    Logger.log('Icons data missing in system sheet, rebuilding from participants sheet...');
-    const participants = getParticipants();
-    iconsData = {};
-    profileUrlsData = {};
-    participants.forEach(p => {
+  // 重要：常に最新の参加者一覧からURLマッピングを再構築する
+  Logger.log('Rebuilding icons and profile URLs from participants sheet...');
+  const participants = getParticipants();
+  const iconsData = {};
+  const profileUrlsData = {};
+
+  participants.forEach(p => {
+    if (p.name) {
       if (p.iconUrl) iconsData[p.name] = p.iconUrl;
       if (p.profileUrl) profileUrlsData[p.name] = p.profileUrl;
-    });
-    // 復旧したデータを保存
-    setSystemData('iconsData', iconsData);
-    setSystemData('profileUrlsData', profileUrlsData);
-  }
+    }
+  });
+
+  // 最新化したデータを保存
+  setSystemData('iconsData', iconsData);
+  setSystemData('profileUrlsData', profileUrlsData);
 
   const webAppData = {
     eventName: settings.eventName || 'はしご酒',
