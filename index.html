@@ -1132,6 +1132,12 @@
           const bg = getCategoryBgColor(card.category);
           const txt = getCategoryTextColor(card.category);
           const col = getCategoryColor(card.category);
+
+          // 該当メンバーのタグHTML生成（ネスト回避）
+          const cardMembersHtml = (card.members || []).map(m =>
+            `<span style="font-size:13px;font-weight:600;background:var(--bg);padding:2px 8px;border-radius:4px;">${escapeHtml(m)}</span>`
+          ).join('');
+
           ce.innerHTML = `
           <div class="card-header" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
             <div class="card-icon" style="background:${bg};color:${col};padding:6px;border-radius:8px;font-size:20px;">
@@ -1146,7 +1152,7 @@
           <div class="card-members" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
             <div style="font-size:11px;font-weight:800;color:var(--text-dim);margin-bottom:6px;">該当メンバー</div>
             <div style="display:flex;flex-wrap:wrap;gap:6px;">
-              ${card.members.map(m => `<span style="font-size:13px;font-weight:600;background:var(--bg);padding:2px 8px;border-radius:4px;">${escapeHtml(m)}</span>`).join('')}
+              ${cardMembersHtml}
             </div>
           </div>
         `;

@@ -172,7 +172,7 @@ function getParticipants() {
     const part4 = isParticipating(part4Cell);
     // ヘッダーから重要カラムのインデックスを特定
     // デフォルト値（新しい指定構成）: L(11)=画像URL, M(12)=プロフURL, N(13)=プロフィール本文
-    let accountIdx = 11; // 一旦Lとしておく（ニックネームが見つからない場合の予備）
+    let accountIdx = 10; // K列をデフォルトのニックネーム列とする
     let iconUrlIdx = 11; // L
     let profileUrlIdx = 12; // M
     let profileIdx = 13; // N
