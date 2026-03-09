@@ -821,7 +821,7 @@
 
     <div class="container">
       <div class="header">
-        <div class="header-badge"><span class="header-badge-dot"></span>リベシティ オフ会</div>
+        <div class="header-badge"><span class="header-badge-dot"></span><span id="eventName">リベシティ オフ会</span></div>
         <h1 class="header-title"><span>TalkBridge</span></h1>
         <div class="header-meta">オフ会の準備を、もっとスムーズに。</div>
       </div>
@@ -910,8 +910,9 @@
         document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('appContent').classList.add('active');
 
-        if (appData.eventName) {
-          document.getElementById('eventName').innerHTML = appData.eventName + '<br><span>グルーピング結果</span>';
+        const eventElem = document.getElementById('eventName');
+        if (appData.eventName && eventElem) {
+          eventElem.innerHTML = appData.eventName;
         }
 
         buildTabs();
