@@ -143,11 +143,48 @@ function getParticipants() {
     Logger.log('例外カテゴリー列の検索結果: 列' + (oViceIdx + 1) + '（' + String.fromCharCode(65 + oViceIdx) + '列）');
   }
 
-  const maxCol = Math.max(15, oViceIdx + 1); // O列(15列目)まで読む
+  const maxCol = 40; // より広く読み込む
   const range = sheet.getRange(DATA_START_ROW, 1, lastRow - DATA_START_ROW + 1, maxCol);
   const data = range.getValues();
+  const allHeadersRow1 = sheet.getRange(1, 1, 1, maxCol).getValues()[0];
+  const allHeadersRow2 = sheet.getRange(2, 1, 1, maxCol).getValues()[0];
+  const allHeadersRow3 = sheet.getRange(3, 1, 1, maxCol).getValues()[0];
 
   const participants = [];
+
+  // 列インデックスの特定（ループの外で一度だけ行う）
+  // デフォルト値: B(1)=実名, L(11)=画像URL, M(12)=プロフURL, N(13)=プロフィール本文
+  let accountIdx = 1;
+  let iconUrlIdx = 11;
+  let profileUrlIdx = 12;
+  let profileIdx = 13;
+  let categoryIdx = -1;
+
+  for (let c = 0; c < maxCol; c++) {
+    const h1 = String(allHeadersRow1[c] || '').trim();
+    const h2 = String(allHeadersRow2[c] || '').trim();
+    const h3 = String(allHeadersRow3[c] || '').trim();
+    const combined = (h1 + h2 + h3);
+
+    if (combined.includes('ニックネーム') || combined.includes('アカウント') || combined.includes('表示名') || combined.includes('プロフ用名')) {
+      if (!combined.includes('系列')) accountIdx = c; // 系列との重複を避ける
+    }
+    if (combined.includes('系列') || combined.includes('カテゴリー')) {
+      categoryIdx = c;
+    }
+    if (combined.includes('画像URL') || combined.includes('アイコン') || (combined.includes('URL') && combined.includes('画像'))) {
+      iconUrlIdx = c;
+    }
+    if (combined.includes('プロフURL') || combined.includes('プロフィールURL') || (combined.includes('URL') && !combined.includes('画像'))) {
+      profileUrlIdx = c;
+    }
+    if (combined.includes('自己紹介') || combined.includes('プロフィール本文') || combined.includes('プロフ本文')) {
+      profileIdx = c;
+    }
+  }
+
+  Logger.log(`[Mapping Settings] Account:${accountIdx}, Icon:${iconUrlIdx}, ProfileURL:${profileUrlIdx}, ProfileContent:${profileIdx}, Category:${categoryIdx}`);
+  if (i === 0) Logger.log(`Header Row2 Sample: ${JSON.stringify(allHeadersRow2.slice(0, 20))}`);
 
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
@@ -159,7 +196,6 @@ function getParticipants() {
     const part3Cell = String(row[5]).trim();
     const part4Cell = oViceIdx !== -1 ? String(row[oViceIdx]).trim() : '';
 
-    // 参加判定（特殊文字「⚪︎」や通常の「○」「〇」などを包括して検知）
     const isParticipating = (val) => {
       if (val === true) return true;
       const v = String(val).trim().toLowerCase();
@@ -170,62 +206,28 @@ function getParticipants() {
     const part2 = isParticipating(part2Cell);
     const part3 = isParticipating(part3Cell);
     const part4 = isParticipating(part4Cell);
-    // ヘッダーから重要カラムのインデックスを特定
-    // デフォルト値（新しい指定構成）: L(11)=画像URL, M(12)=プロフURL, N(13)=プロフィール本文
-    let accountIdx = 10; // K列をデフォルトのニックネーム列とする
-    let iconUrlIdx = 11; // L
-    let profileUrlIdx = 12; // M
-    let profileIdx = 13; // N
-
-    for (let c = 0; c < headersRow2.length; c++) {
-      const h1 = String(headersRow1[c] || '');
-      const h2 = String(headersRow2[c] || '');
-      // ニックネーム（アカウント名）
-      if (h1.includes('ニックネーム') || h2.includes('ニックネーム') || h1.includes('アカウント') || h2.includes('アカウント')) accountIdx = c;
-      // プロフィール本文
-      if (h1.includes('自己紹介') || h1.includes('プロフィール本文') || h1.includes('プロフ本文') || h2.includes('自己紹介') || h2.includes('プロフィール本文')) profileIdx = c;
-      // アイコン画像URL
-      if (h1.includes('画像URL') || h1.includes('アイコン') || h2.includes('画像URL') || h2.includes('アイコン')) iconUrlIdx = c;
-      // プロフィールURL
-      if (h1.includes('プロフURL') || h1.includes('プロフィールURL') || h2.includes('プロフURL') || h2.includes('プロフィールURL')) profileUrlIdx = c;
-    }
 
     const account = String(row[accountIdx] || '').trim();
     const profile = String(row[profileIdx] || '').trim();
-    const rawIconUrl = row[iconUrlIdx] ? String(row[iconUrlIdx]).trim() : '';
-    const rawProfileUrl = row[profileUrlIdx] ? String(row[profileUrlIdx]).trim() : '';
+    // URLは http 判定を少し緩める（前後の空白除去に留める）
+    const rawIconUrl = String(row[iconUrlIdx] || '').trim();
+    const rawProfileUrl = String(row[profileUrlIdx] || '').trim();
 
-    // URLの形式チェック（httpで始まるもののみ許可）
-    const iconUrl = (rawIconUrl.startsWith('http')) ? rawIconUrl : '';
-    const profileUrl = (rawProfileUrl.startsWith('http')) ? rawProfileUrl : '';
+    // Web表示時に壊れないよう最低限 http を確認
+    const iconUrl = rawIconUrl.indexOf('http') === 0 ? rawIconUrl : '';
+    const profileUrl = rawProfileUrl.indexOf('http') === 0 ? rawProfileUrl : '';
 
-    // 名前が空の場合はスキップ
-    if (!name) {
-      continue;
-    }
+    if (!name) continue;
 
-    // 少なくとも1つの部に参加している場合のみ追加
     if (part1 || part2 || part3 || part4) {
-      // デバッグ用ログ：何が入っているか確認
-      Logger.log(`Row: ${i}, Name: ${name}, Part1: ${part1Cell}(${part1}), Part2: ${part2Cell}(${part2}), Part3: ${part3Cell}(${part3}), Part4: ${part4Cell}(${part4})`);
-
       participants.push({
-        no: no,
-        name: name,
-        gender: gender,
-        part1: part1,
-        part2: part2,
-        part3: part3,
-        part4: part4,
-        account: account,
-        profile: profile,
-        iconUrl: iconUrl,
-        profileUrl: profileUrl
+        no: no, name: name, gender: gender,
+        part1: part1, part2: part2, part3: part3, part4: part4,
+        account: account, profile: profile, iconUrl: iconUrl, profileUrl: profileUrl
       });
     }
   }
 
-  Logger.log('===========================');
   Logger.log('Loaded ' + participants.length + ' participants');
   return participants;
 }
