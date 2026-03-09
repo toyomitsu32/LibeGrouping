@@ -80,7 +80,7 @@ function runGrouping() {
         }
 
         setSystemData('groupingResult', result);
-        saveAllResults(false);
+        saveAllResults(true); // True = 同期スキップ（計算したての結果をそのまま描画して保存）
         showToast('グルーピング成功！\n手動調整も可能です。', '完了');
     }, 'グルーピング実行');
 }
