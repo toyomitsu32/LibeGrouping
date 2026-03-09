@@ -7,20 +7,20 @@ function getSettings() {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_SETTINGS);
     if (!sheet) throw new Error('設定シートが見つかりません');
 
-    const data = sheet.getRange('A1:B12').getValues();
+    const data = sheet.getRange('A1:B13').getValues();
     const settings = {};
     const mapping = {
-        1: 'eventName',
-        2: 'maxGroupSize',
-        3: 'minGroupSize',
-        4: 'part1Theme',
-        5: 'part2Theme',
-        6: 'part3Theme',
-        7: 'exceptionCategoryName',
-        8: 'part1Time',
-        9: 'part2Time',
-        10: 'part3Time',
-        11: 'part4Time'
+        2: 'eventName',
+        3: 'maxGroupSize',
+        4: 'minGroupSize',
+        5: 'part1Theme',
+        6: 'part2Theme',
+        7: 'part3Theme',
+        8: 'exceptionCategoryName',
+        9: 'part1Time',
+        10: 'part2Time',
+        11: 'part3Time',
+        12: 'part4Time'
     };
 
     for (const [row, key] of Object.entries(mapping)) {
