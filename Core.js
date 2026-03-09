@@ -130,20 +130,18 @@ function runCardGeneration(targetPart, partLabel) {
         const cardResult = getSystemData('cardResult') || grouping;
 
         const groups = grouping[targetPart];
-        const batchSize = 4;
-        for (let i = 0; i < groups.length; i += batchSize) {
-            const batch = groups.slice(i, i + batchSize);
-            const prompt = buildPrompt(batch, profileMap);
+        for (let i = 0; i < groups.length; i++) {
+            const group = groups[i];
+            const prompt = buildPrompt(group, profileMap);
             const response = callGemini(prompt, settings.geminiApiKey);
             const data = parseJsonSafely(response);
 
-            batch.forEach(g => {
-                if (data[g.team_name]) {
-                    g.summary = data[g.team_name].summary;
-                    g.cards = data[g.team_name].cards;
-                }
-            });
-            if (i + batchSize < groups.length) Utilities.sleep(12000); // 制限回避
+            if (data) {
+                group.summary = data.summary;
+                group.cards = data.cards;
+            }
+            // APIレート制限への配慮（必要に応じて調整）
+            if (i < groups.length - 1) Utilities.sleep(2000);
         }
 
         cardResult[targetPart] = groups;
