@@ -967,8 +967,8 @@
       const container = document.getElementById('tabInfoContainer');
       if (!info || !container) return;
       container.innerHTML = `
-        <div class="tab-info" style="justify-content: center; align-items: baseline; gap: 12px; padding: 12px 16px;">
-          <div class="tab-info-theme" style="font-size: 20px; font-weight: 800; color: var(--libe-text-main);">${info.theme}</div>
+        <div class="tab-info" style="display: flex; justify-content: center; align-items: center; gap: 12px; padding: 12px 16px;">
+          <div class="tab-info-theme" style="font-size: 20px; font-weight: 800; color: var(--libe-text-main); margin-bottom: 2px;">${info.theme}</div>
           <div class="tab-info-time" style="font-size: 14px;">⏰ 開始 ${info.time}</div>
         </div>
       `;
