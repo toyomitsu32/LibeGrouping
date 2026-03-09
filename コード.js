@@ -245,7 +245,7 @@ function distributeIntoGroups(members, minSize, maxSize) {
   const remaining = [...members];
   shuffleArray(remaining);
 
-  // ペアで構成された初期グループに残りのメンバーを追加して均す
+  // 均等なサイズになるようメンバーを分配
   // 必要な総グループ数を算出（最大人数で割った時の切り上げ値）
   const totalMembers = members.length;
   // グループ数のベースを計算（上限を超えないように最小限のグループを作る）
