@@ -891,10 +891,20 @@
     }
 
     function onDataSuccess(result) {
+      console.log('--- onDataSuccess START ---');
+      console.log('Raw result:', result);
       try {
-        if (!result) return;
+        if (!result) {
+          showError('サーバーからの応答が空です。スプレッドシートのメニューから「手動調整を反映」を実行してからリロードしてください。');
+          return;
+        }
         appData = (typeof result === 'string') ? JSON.parse(result) : result;
-        if (appData.error) { showError(appData.error); return; }
+        console.log('Parsed appData:', appData);
+
+        if (appData.error) {
+          showError(appData.error);
+          return;
+        }
 
         document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('appContent').classList.add('active');
@@ -913,8 +923,9 @@
         });
 
         setupTabHandlers();
+        console.log('--- onDataSuccess COMPLETED ---');
       } catch (e) {
-        console.error(e);
+        console.error('CRITICAL UI ERROR:', e);
         showError("表示処理中にエラーが発生しました: " + e.message);
       }
     }
@@ -1001,6 +1012,38 @@
       groups.forEach(group => {
         const card = document.createElement('div');
         card.className = 'group-card';
+
+        // メンバーリストのHTMLを事前に生成（ネスト回避）
+        let memberHtml = '';
+        group.members.forEach((m, i) => {
+          const icon = getIconUrl(m);
+          const pUrl = getProfileUrl(m);
+          const account = getAccountName(m);
+          const iconId = i + 1;
+
+          let itemHtml = '';
+          if (pUrl) {
+            itemHtml += '<a href="' + escapeHtml(pUrl) + '" target="_blank" class="member-list-item has-link" onclick="event.stopPropagation();">';
+          } else {
+            itemHtml += '<div class="member-list-item">';
+          }
+
+          if (icon) {
+            itemHtml += '<img class="member-tag-icon" src="' + escapeHtml(icon) + '" onerror="this.onerror=null;this.src=\'https://ui-avatars.com/api/?name=' + encodeURIComponent(account) + '&background=random\';">';
+          } else {
+            itemHtml += '<div class="member-list-icon">' + iconId + '</div>';
+          }
+
+          itemHtml += '<span class="member-name-text">' + escapeHtml(account) + '</span>';
+
+          if (pUrl) {
+            itemHtml += '<div class="member-link-arrow">→</div></a>';
+          } else {
+            itemHtml += '</div>';
+          }
+          memberHtml += itemHtml;
+        });
+
         card.innerHTML = `
           <div class="group-header">
             <div class="group-name">${escapeHtml(group.team_name)}</div>
@@ -1009,20 +1052,7 @@
               <div class="group-card-arrow">→</div>
             </div>
           </div>
-          <div class="group-members-list">
-            ${group.members.map((m, i) => {
-          const icon = getIconUrl(m);
-          const pUrl = getProfileUrl(m);
-          const account = getAccountName(m);
-          return `
-                ${pUrl ? `<a href="${escapeHtml(pUrl)}" target="_blank" class="member-list-item has-link" onclick="event.stopPropagation();">` : `<div class="member-list-item">`}
-                  ${icon ? `<img class="member-tag-icon" src="${escapeHtml(icon)}" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(account)}&background=random';">` : `<div class="member-list-icon">${i + 1}</div>`}
-                  <span class="member-name-text">${escapeHtml(account)}</span>
-                  ${pUrl ? `<div class="member-link-arrow">→</div>` : ''}
-                ${pUrl ? `</a>` : `</div>`}
-              `;
-        }).join('')}
-          </div>
+          <div class="group-members-list">${memberHtml}</div>
         `;
         card.addEventListener('click', () => showDetail(group, part));
         el.appendChild(card);
@@ -1057,22 +1087,39 @@
       }
 
       const members = group.members || [];
-      document.getElementById('detail-members').innerHTML = `
-        <div class="section-label">MEMBERS (${members.length}人)</div>
-        <div class="group-members-list">
-          ${members.map((m, i) => {
+      let detailMemberHtml = '';
+      members.forEach((m, i) => {
         const icon = getIconUrl(m);
         const pUrl = getProfileUrl(m);
         const account = getAccountName(m);
-        return `
-              ${pUrl ? `<a href="${escapeHtml(pUrl)}" target="_blank" class="member-list-item has-link clickable">` : `<div class="member-list-item">`}
-                ${icon ? `<img class="member-tag-icon" src="${escapeHtml(icon)}" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(account)}&background=random';">` : `<div class="member-list-icon">${i + 1}</div>`}
-                <span class="member-name-text">${escapeHtml(account)}</span>
-                ${pUrl ? `<div class="member-link-arrow">→</div>` : ''}
-              ${pUrl ? `</a>` : `</div>`}
-            `;
-      }).join('')}
-        </div>
+        const iconId = i + 1;
+
+        let itemHtml = '';
+        if (pUrl) {
+          itemHtml += '<a href="' + escapeHtml(pUrl) + '" target="_blank" class="member-list-item has-link clickable">';
+        } else {
+          itemHtml += '<div class="member-list-item">';
+        }
+
+        if (icon) {
+          itemHtml += '<img class="member-tag-icon" src="' + escapeHtml(icon) + '" onerror="this.onerror=null;this.src=\'https://ui-avatars.com/api/?name=' + encodeURIComponent(account) + '&background=random\';">';
+        } else {
+          itemHtml += '<div class="member-list-icon">' + iconId + '</div>';
+        }
+
+        itemHtml += '<span class="member-name-text">' + escapeHtml(account) + '</span>';
+
+        if (pUrl) {
+          itemHtml += '<div class="member-link-arrow">→</div></a>';
+        } else {
+          itemHtml += '</div>';
+        }
+        detailMemberHtml += itemHtml;
+      });
+
+      document.getElementById('detail-members').innerHTML = `
+        <div class="section-label">MEMBERS (${members.length}人)</div>
+        <div class="group-members-list">${detailMemberHtml}</div>
       `;
 
       const cc = document.getElementById('detail-cards');
