@@ -95,9 +95,13 @@ function runCardGenerationPart4() { runCardGeneration('part4', '例外チーム'
  */
 function runCardGeneration(targetPart, partLabel) {
     handleError(() => {
+        let apiKey = getUserApiKey();
+        if (!apiKey) {
+            apiKey = promptForApiKey();
+            if (!apiKey) return; // キャンセルされた場合
+        }
         showToast(`${partLabel}の共通の話題を分析中...`, 'AI処理');
         const settings = getSettings();
-        if (!settings.geminiApiKey) throw new Error('APIキーが未設定です');
 
         syncResultsFromSheet(); // 手動調整を反映
         const groupingStr = getSystemData('groupingResult');
@@ -299,6 +303,30 @@ function openSettingsSheet() {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(SHEET_SETTINGS);
     if (sheet) ss.setActiveSheet(sheet);
+}
+
+/**
+ * APIキーの入力を求めるダイアログを表示
+ */
+function promptForApiKey() {
+    const ui = SpreadsheetApp.getUi();
+    const response = ui.prompt(
+        'Gemini APIキーの設定',
+        'あなたのGemini APIキーを入力してください。\nこのキーはあなた自身のGoogleアカウント内（ユーザープロパティ）に安全に保存され、他のユーザーには見えません。',
+        ui.ButtonSet.OK_CANCEL
+    );
+
+    if (response.getSelectedButton() == ui.Button.OK) {
+        const key = response.getResponseText().trim();
+        if (key) {
+            setUserApiKey(key);
+            showToast('APIキーを保存しました。', '設定完了');
+            return key;
+        } else {
+            ui.alert('キーが空です。設定をキャンセルしました。');
+        }
+    }
+    return null;
 }
 function doGet() { return HtmlService.createHtmlOutputFromFile('index').setTitle('はしご酒').addMetaTag('viewport', 'width=device-width, initial-scale=1'); }
 function getWebAppData() { return getSystemData('webAppFinalData'); }

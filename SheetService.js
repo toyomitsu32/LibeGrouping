@@ -10,7 +10,7 @@ function getSettings() {
     const data = sheet.getRange('A1:B12').getValues();
     const settings = {};
     const mapping = {
-        1: 'geminiApiKey', 2: 'part1Theme', 3: 'part2Theme', 4: 'part3Theme',
+        2: 'part1Theme', 3: 'part2Theme', 4: 'part3Theme',
         5: 'exceptionCategoryName', 6: 'maxGroupSize', 7: 'minGroupSize',
         8: 'eventName', 9: 'part1Time', 10: 'part2Time', 11: 'part3Time', 12: 'part4Time'
     };
@@ -184,6 +184,22 @@ function getNormalizedMappingData() {
     });
 
     return { icons, profileUrls, displayNames };
+}
+
+/**
+ * ユーザープロパティからAPIキーを取得
+ */
+function getUserApiKey() {
+    return PropertiesService.getUserProperties().getProperty('GEMINI_API_KEY');
+}
+
+/**
+ * ユーザープロパティにAPIキーを保存
+ */
+function setUserApiKey(key) {
+    if (key) {
+        PropertiesService.getUserProperties().setProperty('GEMINI_API_KEY', key.trim());
+    }
 }
 
 /**
