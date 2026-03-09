@@ -70,10 +70,18 @@ function runGrouping() {
             }
         });
 
+        // ======= リファクタリング：古い個別AIデータ（AI_***）を一掃 =======
+        const props = PropertiesService.getDocumentProperties();
+        const allKeys = props.getKeys();
+        const aiKeys = allKeys.filter(k => k.startsWith('AI_'));
+        if (aiKeys.length > 0) {
+            aiKeys.forEach(k => props.deleteProperty(k));
+            Logger.log(`${aiKeys.length}件の古いAIデータを削除しました。`);
+        }
+
         setSystemData('groupingResult', result);
-        setSystemData('cardResult', null); // 以前のAI結果をリセット
-        saveAllResults(true); // True = 同期スキップ（計算したての結果をそのまま保存）
-        showToast('グルーピングが完了しました！', '成功');
+        saveAllResults(false);
+        showToast('グルーピング成功！\n手動調整も可能です。', '完了');
     }, 'グルーピング実行');
 }
 
@@ -127,7 +135,6 @@ function runCardGeneration(targetPart, partLabel) {
 
         const participants = getParticipants();
         const profileMap = Object.fromEntries(participants.map(p => [p.name, p.profile || '情報なし']));
-        const cardResult = getSystemData('cardResult') || grouping;
 
         const groups = grouping[targetPart];
         for (let i = 0; i < groups.length; i++) {
@@ -139,14 +146,15 @@ function runCardGeneration(targetPart, partLabel) {
             if (data) {
                 group.summary = data.summary;
                 group.cards = data.cards;
+                // AIデータをチーム個別に裏側へ保存
+                setSystemData(`AI_${targetPart}_${group.team_name}`, data);
             }
             // APIレート制限への配慮（必要に応じて調整）
             if (i < groups.length - 1) Utilities.sleep(2000);
         }
 
-        cardResult[targetPart] = groups;
-        setSystemData('cardResult', cardResult);
-        saveAllResults(true); // 更新した内容をそのまま保存
+        // 最新のデータを結合して保存する処理を実行
+        saveAllResults(false);
         showToast(`${partLabel}の共通の話題が見つかりました！`, '成功');
     }, `${partLabel}分析`);
 }
@@ -159,7 +167,7 @@ function saveAllResults(skipSync = false) {
         if (!skipSync) {
             syncResultsFromSheet();
         }
-        const grouping = getSystemData('cardResult') || getSystemData('groupingResult') || {};
+        const grouping = getSystemData('groupingResult') || { part1: [], part2: [], part3: [], exception: [] };
         const mapping = getNormalizedMappingData();
         const webAppData = buildWebAppData(grouping, mapping, getSettings());
 
@@ -199,14 +207,25 @@ function saveAllResultsInternal(updatedResult) {
  */
 function buildWebAppData(grouping, mapping, settings) {
     const clean = t => (t || '').toString().replace(/\s?チーム$/, '').trim();
+
+    // AIデータを個別キーから取得して結合
+    const partsKeys = ['part1', 'part2', 'part3', 'exception'];
+    const mergedParts = {};
+
+    partsKeys.forEach(partKey => {
+        mergedParts[partKey] = (grouping[partKey] || []).map(team => {
+            const aiData = getSystemData(`AI_${partKey}_${team.team_name}`);
+            return {
+                ...team,
+                summary: aiData ? aiData.summary : (team.summary || ''),
+                cards: aiData ? aiData.cards : (team.cards || [])
+            };
+        });
+    });
+
     return {
         eventName: settings.eventName,
-        parts: {
-            part1: grouping.part1 || [],
-            part2: grouping.part2 || [],
-            part3: grouping.part3 || [],
-            exception: grouping.exception || []
-        },
+        parts: mergedParts,
         partInfo: {
             part1: { label: clean(settings.part1Theme) || '第1部', time: settings.part1Time, theme: clean(settings.part1Theme) },
             part2: { label: clean(settings.part2Theme) || '第2部', time: settings.part2Time, theme: clean(settings.part2Theme) },

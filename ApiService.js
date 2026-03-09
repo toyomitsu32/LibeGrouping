@@ -43,6 +43,16 @@ function callGemini(prompt, apiKey) {
  */
 function parseJsonSafely(text) {
     try {
+        // Markdownや余計なテキストを無視し、最初の'{'から最後の'}'までを抽出
+        const startIdx = text.indexOf('{');
+        const endIdx = text.lastIndexOf('}');
+
+        if (startIdx !== -1 && endIdx !== -1) {
+            const jsonStr = text.substring(startIdx, endIdx + 1);
+            return JSON.parse(jsonStr);
+        }
+
+        // フォールバック（従来の方法）
         let cleaned = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
         cleaned = cleaned.replace(/^```\n?/, '').replace(/\n?```$/, '');
         return JSON.parse(cleaned.trim());
