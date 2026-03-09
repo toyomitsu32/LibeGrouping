@@ -42,7 +42,7 @@ function getSettings() {
     }
     settings.maxGroupSize = parseInt(settings.maxGroupSize) || 4;
     settings.minGroupSize = parseInt(settings.minGroupSize) || 3;
-    settings.exceptionCategoryName = settings.exceptionCategoryName || '子連れ';
+    settings.exceptionCategoryName = settings.exceptionCategoryName || '例外';
     return settings;
 }
 
@@ -257,14 +257,14 @@ function parseSheetToGrouping(data, settings, groupingResult) {
     const p1 = clean(settings.part1Theme) || '第1部';
     const p2 = clean(settings.part2Theme) || '第2部';
     const p3 = clean(settings.part3Theme) || '第3部';
-    const exceptionLabel = clean(settings.exceptionCategoryName) || '子連れ';
+    const p4 = clean(settings.exceptionCategoryName) || '例外';
 
-    const partsLabelToKey = {
-        [`【${p1}】`]: 'part1', '【第1部】': 'part1', '第1部': 'part1',
-        [`【${p2}】`]: 'part2', '【第2部】': 'part2', '第2部': 'part2',
-        [`【${p3}】`]: 'part3', '【第3部】': 'part3', '第3部': 'part3',
-        [`【${exceptionLabel}】`]: 'exception', '【例外】': 'exception', '例外': 'exception', '子連れ': 'exception', 'コズレ': 'exception'
-    };
+    const partsMapping = [
+        { key: 'part1', patterns: [p1, '第1部', 'Part1', 'Part 1'] },
+        { key: 'part2', patterns: [p2, '第2部', 'Part2', 'Part 2'] },
+        { key: 'part3', patterns: [p3, '第3部', 'Part3', 'Part 3'] },
+        { key: 'exception', patterns: [p4, '例外', 'Exception', 'Part4', 'Part 4', '子連れ', 'コズレ'] }
+    ];
 
     let currentPartKey = null;
     const newPartsData = { part1: [], part2: [], part3: [], exception: [] };
@@ -272,34 +272,46 @@ function parseSheetToGrouping(data, settings, groupingResult) {
     for (let i = 0; i < data.length; i++) {
         const row = data[i];
         const firstCell = String(row[0]).trim();
+        if (!firstCell) continue;
 
         // 各部のセクション開始を検知
-        let foundPart = false;
-        for (const [label, key] of Object.entries(partsLabelToKey)) {
-            if (firstCell.startsWith(label)) {
-                currentPartKey = key;
-                foundPart = true;
+        let foundSection = false;
+        for (const mapping of partsMapping) {
+            // "【第1部】" や "第1部" などのパターンのいずれかが含まれているか
+            const isMatch = mapping.patterns.some(p => {
+                if (!p) return false;
+                const cleanP = p.replace(/[【】]/g, '');
+                return firstCell.includes(p) || firstCell.includes(cleanP);
+            });
+
+            if (isMatch) {
+                currentPartKey = mapping.key;
+                foundSection = true;
                 break;
             }
         }
-        if (foundPart) continue;
+        if (foundSection) continue;
 
-        if (currentPartKey && firstCell && !partsLabelToKey[firstCell] &&
-            firstCell !== 'チーム名' && firstCell !== '人数' && firstCell !== 'チーム名 / メンバー' &&
-            firstCell !== '区分/人数' &&
-            firstCell !== '総合判定' && !firstCell.startsWith('🎊')) {
+        // 除外対象の行をスキップ
+        if (currentPartKey && !firstCell.startsWith('🎊') &&
+            !firstCell.includes('チーム名') && !firstCell.includes('人数') &&
+            !firstCell.includes('区分') && !firstCell.includes('総合判定') &&
+            !firstCell.includes('システム用データ')) {
 
             const teamName = firstCell;
             const members = [];
             // C列以降にメンバー名が入っている
             for (let c = 2; c < row.length; c++) {
                 const mName = String(row[c]).trim();
-                // "名"で終わるセル（旧バージョンのゴミや人数）を弾く
+                // "1名" などの人数セルや空セルを除外
                 if (mName && !mName.endsWith('名')) members.push(mName);
             }
 
             if (members.length > 0) {
-                const existingTeam = (groupingResult[currentPartKey] || []).find(t => t.team_name === teamName);
+                // インサイト情報を維持するために既存データを参照
+                const existingTeams = groupingResult[currentPartKey] || [];
+                const existingTeam = existingTeams.find(t => clean(t.team_name) === clean(teamName));
+
                 newPartsData[currentPartKey].push({
                     team_name: teamName,
                     members: members,
@@ -311,3 +323,4 @@ function parseSheetToGrouping(data, settings, groupingResult) {
     }
     return newPartsData;
 }
+

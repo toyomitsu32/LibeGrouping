@@ -105,7 +105,7 @@ function distributeIntoGroups(members, minSize, maxSize) {
 function runCardGenerationPart1() { const s = getSettings(); runCardGeneration('part1', s.part1Theme || '第1部'); }
 function runCardGenerationPart2() { const s = getSettings(); runCardGeneration('part2', s.part2Theme || '第2部'); }
 function runCardGenerationPart3() { const s = getSettings(); runCardGeneration('part3', s.part3Theme || '第3部'); }
-function runCardGenerationException() { const s = getSettings(); runCardGeneration('exception', s.exceptionCategoryName || '例外チーム'); }
+function runCardGenerationPart4() { const s = getSettings(); runCardGeneration('exception', s.exceptionCategoryName || '例外チーム'); }
 
 /**
  * カード生成実行本体
