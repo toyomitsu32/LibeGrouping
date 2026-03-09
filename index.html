@@ -876,7 +876,7 @@
     let appData = null;
     let currentPartKey = null;
 
-    const PART_EMOJI = { part1: '1️⃣', part2: '2️⃣', part3: '3️⃣', part4: '👦' };
+    const PART_EMOJI = { part1: 'Part1', part2: 'Part2', part3: 'Part3', part4: '例外' };
     const categoryIcons = { EXPERIENCE: '⚡', HOBBY: '🎯', BUSINESS: '💼', VALUES: '⭐', OTHER: '•••' };
 
     function initApp() {
@@ -966,12 +966,12 @@
       const info = appData.partInfo[part];
       const container = document.getElementById('tabInfoContainer');
       if (!info || !container) return;
+      const partName = part === 'part4' ? '子連れ/例外' : part.replace('part', 'Part');
       container.innerHTML = `
-        <div class="tab-info">
-          <div class="tab-info-icon-wrap">${PART_EMOJI[part]}</div>
+        <div class="tab-info" style="justify-content: center; text-align: center;">
           <div>
-            <div class="tab-info-time">⏰ 開始 ${info.time}</div>
-            <div class="tab-info-theme">${info.theme}</div>
+            <div class="tab-info-time">${partName}  ⏰ 開始 ${info.time}</div>
+            <div class="tab-info-theme" style="margin-top: 4px; font-size: 18px;">${info.theme}</div>
           </div>
         </div>
       `;
