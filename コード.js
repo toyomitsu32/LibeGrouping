@@ -837,9 +837,14 @@ function syncResultsFromSheet() {
       timestamp: new Date().toISOString(),
       ...newPartsData
     };
-    // メンバー名とチーム名のみの情報を保存し、既存のAIサマリーなどはここでは上書きせず
-    // 最新の状態として保持する。
-    props.setProperty('groupingResult', JSON.stringify(lightweightResult));
+    // メンバー名とチーム名のみの情報を保存（軽量版）
+    setLargeProperty('groupingResult', lightweightResult);
+
+    // すでにカード生成済みのデータがある場合は、その構造も最新のメンバーに更新
+    if (getLargeProperty('cardResult')) {
+      // AIサマリーを保持しつつメンバーだけ更新する処理（updatedResultにはAIサマリーが含まれるためそれを使用）
+      setLargeProperty('cardResult', updatedResult);
+    }
 
     // 重要：スクリプトプロパティだけでなく、シート側のJSON（A2セル）も更新する
     saveAllResultsInternal(updatedResult);
