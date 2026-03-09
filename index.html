@@ -551,37 +551,24 @@
     .group-members-list {
       display: flex;
       flex-direction: column;
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: var(--r-md);
+      border-top: 1px solid var(--border);
       margin-top: 12px;
-      overflow: hidden;
     }
 
     .member-list-item {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 12px 16px;
+      padding: 14px 4px;
       border-bottom: 1px solid var(--border);
-      font-size: 16px;
+      font-size: 18px;
       font-weight: 600;
       color: var(--libe-text-main);
       text-decoration: none;
-      background: white;
     }
 
     .member-list-item.clickable {
       cursor: pointer;
-      transition: background 0.2s ease;
-    }
-
-    .member-list-item.clickable:hover {
-      background: var(--bg);
-    }
-
-    .member-list-item.clickable:active {
-      background: var(--libe-orange-pale);
     }
 
     .member-list-item:last-child {
