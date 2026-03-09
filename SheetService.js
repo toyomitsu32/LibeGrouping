@@ -107,16 +107,43 @@ function getParticipants() {
  * チーム名を読み込む
  */
 function getTeamNames() {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_TEAMS);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_SETTINGS) || ss.getSheetByName(SHEET_TEAMS);
     const settings = getSettings();
     const p1 = clean(settings.part1Theme) || '第1部';
     const p2 = clean(settings.part2Theme) || '第2部';
     const p3 = clean(settings.part3Theme) || '第3部';
     const teams = { [p1]: [], [p2]: [], [p3]: [] };
-    for (let i = 1; i < data.length; i++) {
-        const part = String(data[i][0]).trim();
-        const name = String(data[i][1]).trim();
-        if (part && name && teams[part]) teams[part].push(name);
+
+    const data = sheet.getDataRange().getValues();
+    let startRow = -1;
+    for (let i = 0; i < data.length; i++) {
+        if (String(data[i][0]).toLowerCase().trim() === 'part') {
+            startRow = i + 1;
+            break;
+        }
+    }
+
+    // もし 'part' ヘッダーが見つからなければ、従来の1行目から読み取る（互換性担保のため）
+    if (startRow === -1 && sheet.getName() === SHEET_TEAMS) {
+        startRow = 1;
+    }
+
+    if (startRow !== -1) {
+        for (let i = startRow; i < data.length; i++) {
+            const part = String(data[i][0]).trim();
+            const name = String(data[i][1]).trim();
+            if (part && name) {
+                let targetKey = part;
+                const pLower = part.toLowerCase();
+                if (pLower === 'part1' || part === '第1部' || part === '【第1部】') targetKey = p1;
+                else if (pLower === 'part2' || part === '第2部' || part === '【第2部】') targetKey = p2;
+                else if (pLower === 'part3' || part === '第3部' || part === '【第3部】') targetKey = p3;
+
+                if (!teams[targetKey]) teams[targetKey] = [];
+                teams[targetKey].push(name);
+            }
+        }
     }
     return teams;
 }
