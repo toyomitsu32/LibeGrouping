@@ -274,40 +274,40 @@ function parseSheetToGrouping(data, settings, groupingResult) {
         const firstCell = String(row[0]).trim();
         if (!firstCell) continue;
 
-        // 各部のセクション開始を検知
-        let foundSection = false;
-        for (const mapping of partsMapping) {
-            // "【第1部】" や "第1部" などのパターンのいずれかが含まれているか
-            const isMatch = mapping.patterns.some(p => {
-                if (!p) return false;
-                const cleanP = p.replace(/[【】]/g, '');
-                return firstCell.includes(p) || firstCell.includes(cleanP);
-            });
-
-            if (isMatch) {
-                currentPartKey = mapping.key;
-                foundSection = true;
-                break;
-            }
+        // システムヘッダーや表頭をスキップ
+        if (firstCell.startsWith('🎊') ||
+            firstCell.includes('チーム名') || firstCell.includes('人数') ||
+            firstCell.includes('区分') || firstCell.includes('総合判定') ||
+            firstCell.includes('システム用データ')) {
+            continue;
         }
-        if (foundSection) continue;
 
-        // 除外対象の行をスキップ
-        if (currentPartKey && !firstCell.startsWith('🎊') &&
-            !firstCell.includes('チーム名') && !firstCell.includes('人数') &&
-            !firstCell.includes('区分') && !firstCell.includes('総合判定') &&
-            !firstCell.includes('システム用データ')) {
+        const members = [];
+        // C列以降にメンバー名が入っている
+        for (let c = 2; c < row.length; c++) {
+            const mName = String(row[c]).trim();
+            // "1名" などの人数セルや空セルを除外
+            if (mName && !mName.endsWith('名')) members.push(mName);
+        }
 
-            const teamName = firstCell;
-            const members = [];
-            // C列以降にメンバー名が入っている
-            for (let c = 2; c < row.length; c++) {
-                const mName = String(row[c]).trim();
-                // "1名" などの人数セルや空セルを除外
-                if (mName && !mName.endsWith('名')) members.push(mName);
+        if (members.length === 0) {
+            // メンバーが1人もいない行はセクションヘッダー（各部の区切り）の可能性を探る
+            for (const mapping of partsMapping) {
+                const isMatch = mapping.patterns.some(p => {
+                    if (!p) return false;
+                    const cleanP = p.replace(/[【】]/g, '');
+                    return firstCell.includes(p) || firstCell.includes(cleanP);
+                });
+
+                if (isMatch) {
+                    currentPartKey = mapping.key;
+                    break;
+                }
             }
-
-            if (members.length > 0) {
+        } else {
+            // メンバーが存在する行はチーム行として処理
+            if (currentPartKey) {
+                const teamName = firstCell;
                 // インサイト情報を維持するために既存データを参照
                 const existingTeams = groupingResult[currentPartKey] || [];
                 const existingTeam = existingTeams.find(t => clean(t.team_name) === clean(teamName));
