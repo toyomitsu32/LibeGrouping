@@ -343,31 +343,29 @@ function runGrouping() {
       groupingResult[part.key] = groupData;
     }
 
-    // 結果をスクリプトプロパティに一時保存（分割保存対応）
-    setLargeProperty('groupingResult', groupingResult);
+    // 結果をシステムシートに一時保存
+    setSystemData('groupingResult', groupingResult);
 
-    // アイコンデータを保存（分割保存対応）
+    // アイコンデータを保存
     const iconsData = {};
     participants.forEach(p => {
       if (p.iconUrl) {
         iconsData[p.name] = p.iconUrl;
       }
     });
-    setLargeProperty('iconsData', iconsData);
+    setSystemData('iconsData', iconsData);
 
-    // プロフィールURLデータを保存（分割保存対応）
+    // プロフィールURLデータを保存
     const profileUrlsData = {};
     participants.forEach(p => {
       if (p.profileUrl) {
         profileUrlsData[p.name] = p.profileUrl;
       }
     });
-    setLargeProperty('profileUrlsData', profileUrlsData);
+    setSystemData('profileUrlsData', profileUrlsData);
 
     // 古いカード生成結果をクリアし、新しいグルーピング結果で上書き
-    const props = PropertiesService.getScriptProperties();
-    props.deleteProperty('cardResult');
-    props.deleteProperty('cardResult_count'); // カウントも消去
+    setSystemData('cardResult', null);
 
     // 結果シートおよび WebApp 用データに保存
     saveAllResults();
@@ -495,8 +493,8 @@ function runCardGeneration(targetPart, partLabel) {
     }
 
     // 既存の結果があれば読み込み、なければ現在のグルーピング結果をベースに初期化
-    const existingCardResultStr = props.getProperty('cardResult');
-    const cardResult = existingCardResultStr ? JSON.parse(existingCardResultStr) : {
+    const existingCardResult = getSystemData('cardResult');
+    const cardResult = existingCardResult ? existingCardResult : {
       timestamp: new Date().toISOString(),
       part1: groupingResult.part1 || [],
       part2: groupingResult.part2 || [],
@@ -597,8 +595,8 @@ ${teamsText}
     // 元の構造に生成したデータを書き戻す
     cardResult[targetPart] = groupingResult[targetPart] || [];
 
-    // 生成結果をスクリプトプロパティに保存（分割保存対応）
-    setLargeProperty('cardResult', cardResult);
+    // 生成結果をシステムシートに保存
+    setSystemData('cardResult', cardResult);
 
     // 結果シートおよび WebApp 用データに最新状態を書き込む
     saveAllResults();
@@ -625,10 +623,9 @@ function saveAllResults() {
     // 保存前にスプレッドシート側の手動調整内容を読み取って同期する
     syncResultsFromSheet();
 
-    const groupingResultStr = getLargeProperty('cardResult') || getLargeProperty('groupingResult') || '{}';
-    const groupingResult = JSON.parse(groupingResultStr);
-    const iconsData = JSON.parse(getLargeProperty('iconsData') || '{}');
-    const profileUrlsData = JSON.parse(getLargeProperty('profileUrlsData') || '{}');
+    const groupingResult = getSystemData('cardResult') || getSystemData('groupingResult') || {};
+    const iconsData = getSystemData('iconsData') || {};
+    const profileUrlsData = getSystemData('profileUrlsData') || {};
 
     // WebAppで使用するフォーマットに整形
     const webAppData = {
@@ -678,8 +675,8 @@ function saveAllResults() {
     sheet.getRange('A1').setValue('【システム用データ】以下の行のデータはWebアプリが読み込むものです').setBackground('#fef08a').setFontWeight('bold');
 
     const jsonStr = JSON.stringify(webAppData);
-    // スクリプトプロパティに「完全なデータ」を保存（分割保存対応）
-    setLargeProperty('webAppFinalData', jsonStr);
+    // システムシートに「完全なデータ」を保存
+    setSystemData('webAppFinalData', jsonStr);
 
     if (jsonStr.length < 50000) {
       sheet.getRange('A2').setValue(jsonStr).setFontColor('#6b7280');
@@ -774,8 +771,7 @@ function syncResultsFromSheet() {
     const settings = getSettings();
 
     // 現在のカード生成結果があれば取得（AI生成済みのサマリーを保持するため）
-    const groupingResultStr = getLargeProperty('cardResult') || getLargeProperty('groupingResult') || '{}';
-    const groupingResult = JSON.parse(groupingResultStr);
+    const groupingResult = getSystemData('cardResult') || getSystemData('groupingResult') || {};
 
     // 各部のデータをクリアして再構築
     const exceptionLabel = settings.exceptionCategoryName || '子連れ';
@@ -832,18 +828,13 @@ function syncResultsFromSheet() {
       ...newPartsData
     };
 
-    // 軽量なグルーピング結果をプロパティに保存（PropertiesServiceの9kB制限対策）
-    const lightweightResult = {
-      timestamp: new Date().toISOString(),
-      ...newPartsData
-    };
     // メンバー名とチーム名のみの情報を保存（軽量版）
-    setLargeProperty('groupingResult', lightweightResult);
+    setSystemData('groupingResult', lightweightResult);
 
     // すでにカード生成済みのデータがある場合は、その構造も最新のメンバーに更新
-    if (getLargeProperty('cardResult')) {
+    if (getSystemData('cardResult')) {
       // AIサマリーを保持しつつメンバーだけ更新する処理（updatedResultにはAIサマリーが含まれるためそれを使用）
-      setLargeProperty('cardResult', updatedResult);
+      setSystemData('cardResult', updatedResult);
     }
 
     // 重要：スクリプトプロパティだけでなく、シート側のJSON（A2セル）も更新する
@@ -862,8 +853,8 @@ function syncResultsFromSheet() {
  */
 function saveAllResultsInternal(updatedResult) {
   const settings = getSettings();
-  const iconsData = JSON.parse(getLargeProperty('iconsData') || '{}');
-  const profileUrlsData = JSON.parse(getLargeProperty('profileUrlsData') || '{}');
+  const iconsData = getSystemData('iconsData') || {};
+  const profileUrlsData = getSystemData('profileUrlsData') || {};
 
   const webAppData = {
     eventName: settings.eventName || 'はしご酒',
@@ -891,8 +882,8 @@ function saveAllResultsInternal(updatedResult) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_RESULTS);
   if (sheet) {
     const jsonStr = JSON.stringify(webAppData);
-    // スクリプトプロパティに「完全なデータ」を保存
-    setLargeProperty('webAppFinalData', jsonStr);
+    // システムシートに「完全なデータ」を保存
+    setSystemData('webAppFinalData', jsonStr);
 
     if (jsonStr.length < 50000) {
       sheet.getRange('A2').setValue(jsonStr);
@@ -933,10 +924,10 @@ function getWebAppData() {
 
     const props = PropertiesService.getScriptProperties();
 
-    // 1. まずスクリプトプロパティ（完全なデータ）を確認
-    const finalDataStr = getLargeProperty('webAppFinalData');
-    if (finalDataStr && finalDataStr.length > 10) {
-      return JSON.parse(finalDataStr);
+    // 1. まずシステムシート（完全なデータ）を確認
+    const finalData = getSystemData('webAppFinalData');
+    if (finalData) {
+      return finalData;
     }
 
     // 2. プロパティにない場合、または警告のみの場合はシートからフォールバック
