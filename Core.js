@@ -331,5 +331,5 @@ function promptForApiKey() {
     }
     return null;
 }
-function doGet() { return HtmlService.createHtmlOutputFromFile('index').setTitle('はしご酒').addMetaTag('viewport', 'width=device-width, initial-scale=1'); }
+function doGet() { return HtmlService.createHtmlOutputFromFile('index').setTitle('TalkBridge').addMetaTag('viewport', 'width=device-width, initial-scale=1'); }
 function getWebAppData() { return getSystemData('webAppFinalData'); }
