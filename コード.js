@@ -171,18 +171,23 @@ function getParticipants() {
     const part3 = isParticipating(part3Cell);
     const part4 = isParticipating(part4Cell);
     // ヘッダーから重要カラムのインデックスを特定
-    let accountIdx = 11; // L
-    let profileIdx = 12; // M
-    let iconUrlIdx = 13; // N
-    let profileUrlIdx = 14; // O
+    // デフォルト値（新しい指定構成）: L(11)=画像URL, M(12)=プロフURL, N(13)=プロフィール本文
+    let accountIdx = 11; // 一旦Lとしておく（ニックネームが見つからない場合の予備）
+    let iconUrlIdx = 11; // L
+    let profileUrlIdx = 12; // M
+    let profileIdx = 13; // N
 
     for (let c = 0; c < headersRow2.length; c++) {
       const h1 = String(headersRow1[c] || '');
       const h2 = String(headersRow2[c] || '');
-      if (h1.includes('ニックネーム') || h2.includes('ニックネーム')) accountIdx = c;
-      if (h1.includes('自己紹介') || h1.includes('プロフィール文') || h2.includes('自己紹介') || h2.includes('プロフィール文')) profileIdx = c;
-      if (h1.includes('アイコン') || h2.includes('アイコン')) iconUrlIdx = c;
-      if (h1.includes('プロフィールURL') || h2.includes('プロフィールURL')) profileUrlIdx = c;
+      // ニックネーム（アカウント名）
+      if (h1.includes('ニックネーム') || h2.includes('ニックネーム') || h1.includes('アカウント') || h2.includes('アカウント')) accountIdx = c;
+      // プロフィール本文
+      if (h1.includes('自己紹介') || h1.includes('プロフィール本文') || h1.includes('プロフ本文') || h2.includes('自己紹介') || h2.includes('プロフィール本文')) profileIdx = c;
+      // アイコン画像URL
+      if (h1.includes('画像URL') || h1.includes('アイコン') || h2.includes('画像URL') || h2.includes('アイコン')) iconUrlIdx = c;
+      // プロフィールURL
+      if (h1.includes('プロフURL') || h1.includes('プロフィールURL') || h2.includes('プロフURL') || h2.includes('プロフィールURL')) profileUrlIdx = c;
     }
 
     const account = String(row[accountIdx] || '').trim();
