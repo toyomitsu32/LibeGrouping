@@ -21,8 +21,6 @@ function onOpen() {
             .addSeparator()
             .addItem('🔄 手動調整をWebアプリに反映', 'syncResultsFromSheet')
             .addSeparator()
-            .addItem('⚙️ 設定シートを開く', 'openSettingsSheet')
-            .addSeparator()
             .addItem('🔑 APIキーを設定・再設定する', 'promptForApiKey')
             .addToUi();
     } catch (e) {
@@ -338,13 +336,6 @@ function shuffleArray(array) {
     }
 }
 function showToast(msg, title) { SpreadsheetApp.getActiveSpreadsheet().toast(msg, title, 5); }
-function openSettingsSheet() {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName(SHEET_SETTINGS);
-    if (sheet) ss.setActiveSheet(sheet);
-}
-
-
 /**
  * APIキーの入力を求めるダイアログを表示
  */
