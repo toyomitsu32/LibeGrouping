@@ -340,9 +340,44 @@ function shuffleArray(array) {
 }
 function showToast(msg, title) { SpreadsheetApp.getActiveSpreadsheet().toast(msg, title, 5); }
 function showWebAppUrl() {
-    const url = ScriptApp.getService().getUrl();
-    const html = `<p>WebアプリのURLはこちらです：</p><p><a href="${url}" target="_blank">${url}</a></p>`;
-    const output = HtmlService.createHtmlOutput(html).setWidth(400).setHeight(150);
+    const rawUrl = ScriptApp.getService().getUrl();
+    if (!rawUrl) {
+        SpreadsheetApp.getUi().alert('WebアプリのURLが取得できませんでした。\nApps Scriptエディタ右上の「デプロイ」から新しいデプロイを作成してください。');
+        return;
+    }
+
+    let execUrl = rawUrl;
+    let devUrl = rawUrl;
+
+    if (rawUrl.endsWith('/dev')) {
+        execUrl = rawUrl.replace('/dev', '/exec');
+    } else if (rawUrl.endsWith('/exec')) {
+        devUrl = rawUrl.replace('/exec', '/dev');
+    }
+
+    const html = `
+    <div style="font-family: sans-serif; padding: 10px; line-height: 1.5;">
+        <p style="color: #d97706; font-size: 13px; font-weight: bold; margin-top: 0;">
+            ⚠️ リンク先が「見つかりません(404)」となる場合
+        </p>
+        <p style="font-size: 12px; color: #555; margin-bottom: 15px;">
+            Googleの仕様により、複数のGoogleアカウントに同時ログインしているとエラーになります。その場合はURLをコピーして<strong>「シークレットウィンドウ」</strong>で開いてください。
+        </p>
+        
+        <p style="margin-bottom: 5px;"><b>💻 開発・テスト用URL（管理者専用）</b><br>
+        <span style="font-size: 11px; color: #666;">※最新のコードが即時反映されます</span></p>
+        <div style="background: #f3f4f6; padding: 8px; border-radius: 4px; border: 1px solid #ddd; margin-bottom: 15px; word-break: break-all; font-size: 12px;">
+            <a href="${devUrl}" target="_blank">${devUrl}</a>
+        </div>
+
+        <p style="margin-bottom: 5px;"><b>🚀 公開用URL（参加者へ共有する場合）</b><br>
+        <span style="font-size: 11px; color: #666;">※エディタ画面から「新しいデプロイ」を行わないと反映されません</span></p>
+        <div style="background: #eff6ff; padding: 8px; border-radius: 4px; border: 1px solid #bfdbfe; word-break: break-all; font-size: 12px;">
+            <a href="${execUrl}" target="_blank">${execUrl}</a>
+        </div>
+    </div>
+    `;
+    const output = HtmlService.createHtmlOutput(html).setWidth(500).setHeight(350);
     SpreadsheetApp.getUi().showModalDialog(output, 'WebアプリURL');
 }
 function openSettingsSheet() {
