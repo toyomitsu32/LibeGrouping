@@ -65,14 +65,8 @@ function runGrouping() {
             }
         });
 
-        // ======= リファクタリング：古い個別AIデータ（AI_***）を一掃 =======
-        const props = PropertiesService.getDocumentProperties();
-        const allKeys = props.getKeys();
-        const aiKeys = allKeys.filter(k => k.startsWith('AI_'));
-        if (aiKeys.length > 0) {
-            aiKeys.forEach(k => props.deleteProperty(k));
-            Logger.log(`${aiKeys.length}件の古いAIデータを削除しました。`);
-        }
+        // ======= 古い個別AIデータ（AI_***）を一掃 =======
+        clearAllAIData();
 
         setSystemData('groupingResult', result);
         saveAllResults(true); // True = 同期スキップ（計算したての結果をそのまま描画して保存）
@@ -183,6 +177,9 @@ function syncResultsFromSheet() {
         const groupingResult = getSystemData('cardResult') || getSystemData('groupingResult') || { part1: [], part2: [], part3: [], exception: [] };
 
         const newPartsData = parseSheetToGrouping(data, settings, groupingResult);
+
+        // 手動調整でメンバー構成が変わったため、古いAIの「共通の話題」データを破棄する
+        clearAllAIData();
 
         setSystemData('groupingResult', newPartsData);
         if (getSystemData('cardResult')) setSystemData('cardResult', newPartsData);

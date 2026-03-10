@@ -214,6 +214,22 @@ function getSystemData(key) {
     try { return JSON.parse(data); } catch (e) { return data; }
 }
 
+function clearAllAIData() {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SYSTEM_SHEET_NAME);
+    if (!sheet) return;
+
+    const keys = sheet.getRange("A:A").getValues();
+    let deletedCount = 0;
+    // 行削除によるインデックスのズレを防ぐため、下から上へループする
+    for (let i = keys.length - 1; i >= 0; i--) {
+        if (keys[i][0] && String(keys[i][0]).startsWith('AI_')) {
+            sheet.deleteRow(i + 1);
+            deletedCount++;
+        }
+    }
+    Logger.log(`${deletedCount}件の古いAIデータをSystemDataシートから削除しました。`);
+}
+
 /**
  * データの正規化 (Single Source of Truth) - 提案A
  */
