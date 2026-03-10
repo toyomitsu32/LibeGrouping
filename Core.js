@@ -13,15 +13,13 @@ function onOpen() {
 
         SpreadsheetApp.getUi().createMenu('TalkBridge メニュー')
             .addItem('① グルーピング実行', 'runGrouping')
+            .addItem('🔄 手動調整をWebアプリに反映', 'syncResultsFromSheet')
             .addSeparator()
+            .addItem('🔑 APIキーを設定・再設定する', 'promptForApiKey')
             .addItem(`② ${p1}のプロフィールから共通の話題を見つける`, 'runCardGenerationPart1')
             .addItem(`③ ${p2}のプロフィールから共通の話題を見つける`, 'runCardGenerationPart2')
             .addItem(`④ ${p3}のプロフィールから共通の話題を見つける`, 'runCardGenerationPart3')
             .addItem(`⑤ ${p4}のプロフィールから共通の話題を見つける`, 'runCardGenerationPart4')
-            .addSeparator()
-            .addItem('🔄 手動調整をWebアプリに反映', 'syncResultsFromSheet')
-            .addSeparator()
-            .addItem('🔑 APIキーを設定・再設定する', 'promptForApiKey')
             .addToUi();
     } catch (e) {
         Logger.log('onOpen error: ' + e.message);
