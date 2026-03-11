@@ -178,8 +178,22 @@ function syncResultsFromSheet() {
 
         const newPartsData = parseSheetToGrouping(data, settings, groupingResult);
 
-        // 手動調整でメンバー構成が変わったため、古いAIの「共通の話題」データを破棄する
-        clearAllAIData();
+        // メンバー構成が「実際に」変更されたか判定する
+        const extractMembers = (g) => {
+            const res = {};
+            ['part1', 'part2', 'part3', 'exception'].forEach(p => {
+                res[p] = (g[p] || []).map(t => ({
+                    t: t.team_name,
+                    m: [...(t.members || [])].sort()
+                })).sort((a, b) => a.t.localeCompare(b.t));
+            });
+            return res;
+        };
+
+        if (JSON.stringify(extractMembers(groupingResult)) !== JSON.stringify(extractMembers(newPartsData))) {
+            Logger.log('メンバー構成の変更を検知しました。古いAIの「共通の話題」データを破棄します。');
+            clearAllAIData();
+        }
 
         setSystemData('groupingResult', newPartsData);
         if (getSystemData('cardResult')) setSystemData('cardResult', newPartsData);
