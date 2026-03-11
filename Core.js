@@ -298,7 +298,7 @@ function paintResultsToSheet(webAppData) {
         if (!partGroups || partGroups.length === 0) continue;
         const partInfo = webAppData.partInfo[key];
 
-        sheet.getRange(currentRow, 1).setValue(`【${partInfo.label}】 ${partInfo.time} 〜 （テーマ：${partInfo.theme || 'なし'}）`).setFontWeight('bold').setBackground('#f3f4f6');
+        sheet.getRange(currentRow, 1).setValue(`【${partInfo.label}】 ${partInfo.time}`).setFontWeight('bold').setBackground('#f3f4f6');
         currentRow++;
 
         const headerRow = ['チーム名', '人数', ...Array.from({ length: displayMaxMembers }, (_, i) => 'メンバー' + (i + 1))];
